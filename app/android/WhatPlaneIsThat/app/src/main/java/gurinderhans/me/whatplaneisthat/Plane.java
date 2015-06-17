@@ -5,12 +5,13 @@ package gurinderhans.me.whatplaneisthat;
  */
 public class Plane {
 
-    String name, landingAt;
+    String name, landingAt, name2;
     double latitude, longitude;
 
-    public Plane(String name, String landingAt, double lat, double lng) {
+    public Plane(String name, String landingAt, String name2, double lat, double lng) {
         this.name = name;
         this.landingAt = landingAt;
+        this.name2 = name2;
 
         this.latitude = lat;
         this.longitude = lng;

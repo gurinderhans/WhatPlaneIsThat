@@ -15,6 +15,7 @@ if r.status_code == 200:
     # print json.dumps(r.json(), indent=4, sort_keys=True)
     for i in plane_data:
         if type(plane_data[i]) == list:
+	    print plane_data[i]
             planeLat = plane_data[i][1]
             planeLng = plane_data[i][2]
             # planeRotation = plane_data[i][3] # this maybe ( just assuming )

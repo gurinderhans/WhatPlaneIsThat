@@ -3,6 +3,7 @@ package gurinderhans.me.whatplaneisthat;
 import android.content.Context;
 import android.os.Handler;
 
+import com.google.gson.JsonObject;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -25,7 +26,7 @@ public class OkHttpWrapper {
         mainHandler = new Handler(c.getMainLooper());
     }
 
-    public void get(String url, final HttpCallback cb) {
+    public void getJson(String url, final HttpCallback cb) {
 
         Request request = builder.url(url).build();
 
@@ -51,7 +52,7 @@ public class OkHttpWrapper {
                         cb.onFinished();
 
                         if (response.isSuccessful()) {
-                            cb.onSuccess(response);
+                            cb.onSuccess(Tools.stringToJsonObject(response.body()));
                             return;
                         }
 
@@ -76,9 +77,9 @@ public class OkHttpWrapper {
         /**
          * contains the server response
          *
-         * @param response
+         * @param jsonData
          */
-        void onSuccess(Response response);
+        void onSuccess(JsonObject jsonData);
 
         /**
          * custom method just to manage the handler loop
