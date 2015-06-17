@@ -29,7 +29,6 @@ public class MainActivity extends FragmentActivity {
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     Handler mHandler = new Handler();
     OkHttpWrapper mWrapper;
-
     List<Pair<String, Marker>> mPlaneMarkers;
 
     @Override
@@ -42,11 +41,9 @@ public class MainActivity extends FragmentActivity {
         mHandler.postDelayed(fetchData, 0);
     }
 
-
     Runnable fetchData = new Runnable() {
         @Override
         public void run() {
-
             mWrapper.getJson(Constants.BASE_URL + String.format(Constants.OPTIONS_FORMAT,
                             // map bounds
                             "49.3413832283658",
@@ -77,27 +74,22 @@ public class MainActivity extends FragmentActivity {
 
                                     LatLngBounds searchBounds = new LatLngBounds(new LatLng(48.96590422141798, -122.58386901855408), new LatLng(49.3413832283658, -123.49031433105472));
 
+                                    int markerIndex = getPlaneMarkerIndex(planeName);
+
                                     // add to list if not already
-                                    if (!inPlaneList(planeName)) {
-//                                        Log.i(TAG, "not in list: " + planeName);
+                                    if (markerIndex == -1) {
                                         mPlaneMarkers.add(Pair.create(planeName, mMap.addMarker(new MarkerOptions()
                                                 .position(new LatLng(plane.latitude, plane.longitude))
                                                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
                                                 .title(plane.name))));
                                     } else {
-                                        int markerIndex = getPlaneMarkerIndex(planeName);
-//                                        Log.i(TAG, "found plane in list: " + planeName + " @" + markerIndex);
-                                        if (markerIndex != -1) {
-//                                            mPlaneMarkers.get(markerIndex).second.setPosition(new LatLng(plane.latitude, plane.longitude));
-                                            if (searchBounds.contains(new LatLng(plane.latitude, plane.longitude))) {
-                                                // remove the marker
-                                                Log.i(TAG, "plane marker removed: " + planeName);
-                                                mPlaneMarkers.remove(markerIndex);
-                                            } else {
-                                                // update its location
-                                                Log.i(TAG, "updating its location: " + planeName);
-                                                mPlaneMarkers.get(markerIndex).second.setPosition(new LatLng(plane.latitude, plane.longitude));
-                                            }
+
+                                        if (searchBounds.contains(new LatLng(plane.latitude, plane.longitude))) {
+                                            // remove the marker
+                                            mPlaneMarkers.remove(markerIndex);
+                                        } else {
+                                            // update its location
+                                            mPlaneMarkers.get(markerIndex).second.setPosition(new LatLng(plane.latitude, plane.longitude));
                                         }
                                     }
                                 }
@@ -110,10 +102,15 @@ public class MainActivity extends FragmentActivity {
                             mHandler.postDelayed(fetchData, 10000);
                         }
                     });
-
         }
     };
 
+    /**
+     * Checks if given plane name is in mPlaneMarkers
+     *
+     * @param name - plane name
+     * @return - index of the plane in the list, -1 if not found
+     */
     public int getPlaneMarkerIndex(String name) {
 
         for (int i = 0; i < mPlaneMarkers.size(); i++) {
@@ -123,15 +120,6 @@ public class MainActivity extends FragmentActivity {
 
         return -1;
     }
-
-    public boolean inPlaneList(String planeName) {
-        for (Pair<String, Marker> marker : mPlaneMarkers) {
-            if (marker.first.equals(planeName))
-                return true;
-        }
-        return false;
-    }
-
 
     @Override
     protected void onResume() {
