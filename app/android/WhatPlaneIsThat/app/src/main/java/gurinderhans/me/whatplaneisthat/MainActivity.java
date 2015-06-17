@@ -1,9 +1,8 @@
 package gurinderhans.me.whatplaneisthat;
 
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
-import android.os.Bundle;
-import android.util.Log;
 import android.util.Pair;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -24,6 +23,11 @@ import java.util.Map;
 
 public class MainActivity extends FragmentActivity {
 
+    // TODO: Estimate plane location and make it move in "realtime"
+    // TODO: Get plane rotation
+    // TODO: get user location with rotation
+    // TODO: guess which planes "I" might be able to see
+
     protected static final String TAG = MainActivity.class.getSimpleName();
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
@@ -36,6 +40,7 @@ public class MainActivity extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setUpMapIfNeeded();
+
         mPlaneMarkers = new ArrayList<>();
         mWrapper = new OkHttpWrapper(this);
         mHandler.postDelayed(fetchData, 0);
