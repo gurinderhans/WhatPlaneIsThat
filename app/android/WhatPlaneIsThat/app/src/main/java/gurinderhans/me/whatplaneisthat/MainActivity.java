@@ -54,11 +54,6 @@ public class MainActivity extends FragmentActivity {
         mWrapper = new OkHttpWrapper(this);
         mHandler.postDelayed(fetchData, 0);
 
-
-//        Log.i(TAG, "new Lat/Lng: " + GeoLocation.boundingBox(49.1229558, -122.8662829, 45, 100).toString());
-//        Log.i(TAG, "new Lat/Lng: " + GeoLocation.boundingBox(49.1229558, -122.8662829, 135, 100).toString());
-//        Log.i(TAG, "new Lat/Lng: " + GeoLocation.boundingBox(49.1229558, -122.8662829, 225, 100).toString());
-//        Log.i(TAG, "new Lat/Lng: " + GeoLocation.boundingBox(49.1229558, -122.8662829, 315, 100).toString());
     }
 
     Runnable fetchData = new Runnable() {
@@ -134,7 +129,7 @@ public class MainActivity extends FragmentActivity {
                         @Override
                         public void onFinished() {
                             // loop with delay
-                            mHandler.postDelayed(fetchData, 10000);
+                            mHandler.postDelayed(fetchData, Constants.REFRESH_INTERVAL);
                         }
                     });
         }
