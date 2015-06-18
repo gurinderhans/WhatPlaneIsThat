@@ -10,4 +10,6 @@ public class Constants {
     public static String OPTIONS_FORMAT = "?bounds=%s,%s,%s,%s&faa=1&mlat=1&flarm=1&adsb=1&gnd=1&air=1&vehicles=1&estimated=1&maxage=900&gliders=1&stats=1&";
 
     public static String PLANE_NAME_SPLITTER = "-||-";
+
+    public static final long REFRESH_INTERVAL = 10000l;
 }
