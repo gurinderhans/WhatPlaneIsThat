@@ -26,4 +26,5 @@ dependencies {
     compile 'com.squareup.okio:okio:1.4.0'
     compile 'com.squareup.okhttp:okhttp:2.4.0'
     compile 'com.google.code.gson:gson:2.2.4'
+    compile 'com.github.japgolly.android:svg-android:2.0.6'
 }

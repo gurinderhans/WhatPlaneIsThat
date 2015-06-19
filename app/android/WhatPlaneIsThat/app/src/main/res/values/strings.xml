@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">WhatPlaneIsThat</string>
     <string name="title_activity_main">Finder</string>
+
+    <color name="gray">#80333333</color>
 </resources>

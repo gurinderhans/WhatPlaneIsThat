@@ -17,6 +17,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -24,11 +26,13 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.larvalabs.svgandroid.SVGBuilder;
 import com.squareup.okhttp.Response;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener {
 
@@ -54,6 +58,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     LocationManager mLocationManager;
     LatLng mUserLocation;
     Marker mUserMarker;
+    Circle mUserVisibilityCircle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +73,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         setUpMapIfNeeded();
         mHandler.postDelayed(fetchData, 0);
+
+
     }
 
     Runnable fetchData = new Runnable() {
@@ -231,6 +238,13 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                         .flat(true)
                         .anchor(0.5f, 0.5f)
         );
+
+        mUserVisibilityCircle = mMap.addCircle(new CircleOptions()
+                        .center(mUserLocation)
+                        .strokeColor(R.color.gray)
+                        .strokeWidth(4)
+                        .radius(10)
+        );
     }
 
 
@@ -245,7 +259,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         // update user location
         mUserLocation = new LatLng(location.getLatitude(), location.getLongitude());
         mUserMarker.setPosition(mUserLocation);
-//        mMap.animateCamera(CameraUpdateFactory.newLatLng(mUserLocation));
+
+        // plane visibiity circle - radius will depend on the actual visibilty retreived from some weather API (TODO:)
+        mUserVisibilityCircle.setCenter(mUserLocation);
+        mUserVisibilityCircle.setRadius(5000);
 
     }
 
