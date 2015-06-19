@@ -14,15 +14,16 @@ public class GeoLocation {
     /**
      * Calculates LatLng of some point at a distance from given latitude, longitude at an angle
      *
-     * @param latitude  - given latitude
-     * @param longitude - given longitude
-     * @param bearing   - give bearing / angle (in degrees)
-     * @param distance  - distance in Km
+     * @param location - given location
+     * @param bearing  - give bearing / angle (in degrees)
+     * @param distance - distance in Km
      * @return - new LatLng that is distance away from current point at some angle
      */
-    public static LatLng boundingBox(double latitude, double longitude, double bearing, double distance) {
+    public static LatLng boundingBox(LatLng location, double bearing, double distance) {
 
         float radius = 6378.1f;
+        double latitude = location.latitude;
+        double longitude = location.longitude;
 
         // new latitude
         double nLat = Math.toDegrees(Math.asin(Math.sin(Math.toRadians(latitude)) * Math.cos(distance / radius) + Math.cos(Math.toRadians(latitude)) * Math.sin(distance / radius) * Math.cos(Math.toRadians(bearing))));

@@ -1,15 +1,22 @@
 package gurinderhans.me.whatplaneisthat;
 
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.util.Pair;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -23,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener {
 
     // TODO: Estimate plane location and make it move in "realtime"
     // TODO: Get plane rotation
@@ -42,25 +49,32 @@ public class MainActivity extends FragmentActivity {
     OkHttpWrapper mWrapper;
     List<Pair<String, Marker>> mPlaneMarkers;
 
-    LatLng mUserLocation = new LatLng(49.1229558, -122.8662829);
+
+    SensorManager mSensorManager;
+    LocationManager mLocationManager;
+    LatLng mUserLocation;
+    Marker mUserMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        setUpMapIfNeeded();
 
         mPlaneMarkers = new ArrayList<>();
         mWrapper = new OkHttpWrapper(this);
-        mHandler.postDelayed(fetchData, 0);
+        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        mUserLocation = new LatLng(0, 0);
 
+        setUpMapIfNeeded();
+        mHandler.postDelayed(fetchData, 0);
     }
 
     Runnable fetchData = new Runnable() {
         @Override
         public void run() {
-            LatLng north_west = GeoLocation.boundingBox(49.1229558, -122.8662829, 315, 100);
-            LatLng south_east = GeoLocation.boundingBox(49.1229558, -122.8662829, 135, 100);
+            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, 100);
+            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, 100);
             mWrapper.getJson(Constants.BASE_URL + String.format(Constants.OPTIONS_FORMAT,
                             // map bounds
                             north_west.latitude + "",
@@ -74,7 +88,8 @@ public class MainActivity extends FragmentActivity {
                         }
 
                         @Override
-                        public void onSuccess(JsonObject jsonData) {
+                        public void onSuccess(Object data) {
+                            JsonObject jsonData = (JsonObject) data;
                             for (Map.Entry<String, JsonElement> entry : jsonData.entrySet()) {
 
                                 if (entry.getValue() instanceof JsonArray) { // this data is about a plane and not other json info
@@ -92,7 +107,7 @@ public class MainActivity extends FragmentActivity {
 
                                     String planeName = plane.name + Constants.PLANE_NAME_SPLITTER + plane.name2;
 
-                                    LatLngBounds searchBounds = new LatLngBounds(GeoLocation.boundingBox(49.1229558, -122.8662829, 225, 100), GeoLocation.boundingBox(49.1229558, -122.8662829, 45, 100));
+                                    LatLngBounds searchBounds = new LatLngBounds(GeoLocation.boundingBox(mUserLocation, 225, 100), GeoLocation.boundingBox(mUserLocation, 45, 100));
 
                                     Log.i(TAG, "bounds: " + searchBounds.toString());
 
@@ -105,6 +120,7 @@ public class MainActivity extends FragmentActivity {
                                                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
                                                 .title(plane.name)
                                                 .rotation(plane.rotation)
+                                                .anchor(0.5f, 0.5f)
                                                 .flat(true)));
                                         mPlaneMarkers.add(planeMarker);
 
@@ -155,6 +171,22 @@ public class MainActivity extends FragmentActivity {
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
+
+        // assign location update request
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000l, 0f, this);
+
+        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_GAME);
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // remove gps listener
+        mLocationManager.removeUpdates(this);
+
+        // remove sensor listener
+        mSensorManager.unregisterListener(this);
     }
 
     /**
@@ -192,7 +224,62 @@ public class MainActivity extends FragmentActivity {
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        mUserMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0))
+                        .title("Marker")
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.user_marker))
+                        .rotation(0f)
+                        .flat(true)
+                        .anchor(0.5f, 0.5f)
+        );
     }
 
+
+    //
+    // MARK: location change methods
+    //
+
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Log.i(TAG, "location now: " + location.toString());
+        // update user location
+        mUserLocation = new LatLng(location.getLatitude(), location.getLongitude());
+        mUserMarker.setPosition(mUserLocation);
+//        mMap.animateCamera(CameraUpdateFactory.newLatLng(mUserLocation));
+
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+        Log.i(TAG, "status changed of: " + provider + " to: " + status + ", extras: " + extras);
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        Log.i(TAG, "provider enabled: " + provider);
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+        Log.i(TAG, "provider disabled: " + provider);
+    }
+
+
+    //
+    // MARK: sensor events
+    //
+
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        // get the angle around the z-axis rotated
+        float degree = Math.round(event.values[0]);
+        mUserMarker.setRotation(degree);
+
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
 }

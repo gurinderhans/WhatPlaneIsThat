@@ -79,7 +79,7 @@ public class OkHttpWrapper {
          *
          * @param jsonData
          */
-        void onSuccess(JsonObject jsonData);
+        void onSuccess(Object jsonData);
 
         /**
          * custom method just to manage the handler loop
