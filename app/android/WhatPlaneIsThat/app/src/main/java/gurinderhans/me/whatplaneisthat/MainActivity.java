@@ -16,8 +16,6 @@ import android.util.Pair;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.Circle;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
@@ -228,8 +226,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
      */
     private void setUpMap() {
         mUserMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0))
-                        .title("Marker")
-                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.user_marker))
+                        .icon(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_marker, -1, -1)))
                         .rotation(0f)
                         .flat(true)
                         .anchor(0.5f, 0.5f)
@@ -237,7 +234,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         // user visibility circle
         visibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromBitmap(Tools.getMarker(this)))
+                .image(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_visibility, -1, -1)))
                 .anchor(0.5f, 0.5f)
                 .position(new LatLng(0, 0), 500000f));
 
@@ -256,7 +253,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mUserLocation = new LatLng(location.getLatitude(), location.getLongitude());
         mUserMarker.setPosition(mUserLocation);
 
-        // plane visibiity circle - radius will depend on the actual visibilty retreived from some weather API (TODO:)
+        // plane visibiity circle - radius will depend on the actual visibilty retreived from some weather API ( TODO )
         visibilityCircle.setPosition(mUserLocation);
         visibilityCircle.setDimensions(5000f);
     }

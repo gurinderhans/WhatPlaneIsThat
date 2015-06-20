@@ -37,15 +37,17 @@ public class Tools {
         return new JsonObject();
     }
 
-    public static Bitmap getMarker(Context c) {
+    public static Bitmap getSVGBitmap(Context c, int rId, int width, int height) {
 
+        Picture picture = new SVGBuilder().readFromResource(c.getResources(), rId).build().getPicture();
 
-        Picture picture = new SVGBuilder().readFromResource(c.getResources(), R.drawable.user_visibility).build().getPicture();
+        int w = (width < 1) ? picture.getWidth() : width;
+        int h = (height < 1) ? picture.getWidth() : height;
 
-        Bitmap bmp = Bitmap.createBitmap(picture.getWidth(), picture.getHeight(), Bitmap.Config.ARGB_8888);
+        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
 
-        canvas.drawPicture(picture, new Rect(0, 0, picture.getWidth(), picture.getHeight()));
+        canvas.drawPicture(picture, new Rect(0, 0, w, h));
 
         return bmp;
     }
