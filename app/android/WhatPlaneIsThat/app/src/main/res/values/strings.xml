@@ -2,5 +2,5 @@
     <string name="app_name">WhatPlaneIsThat</string>
     <string name="title_activity_main">Finder</string>
 
-    <color name="gray">#80333333</color>
+    <color name="visibility_circle_color">#5199dc</color>
 </resources>

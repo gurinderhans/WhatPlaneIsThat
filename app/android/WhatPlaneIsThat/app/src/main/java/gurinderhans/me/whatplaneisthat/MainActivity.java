@@ -13,12 +13,13 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.util.Pair;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
+import com.google.android.gms.maps.model.GroundOverlay;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -26,13 +27,11 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.larvalabs.svgandroid.SVGBuilder;
 import com.squareup.okhttp.Response;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener {
 
@@ -53,12 +52,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     OkHttpWrapper mWrapper;
     List<Pair<String, Marker>> mPlaneMarkers;
 
-
     SensorManager mSensorManager;
     LocationManager mLocationManager;
     LatLng mUserLocation;
     Marker mUserMarker;
-    Circle mUserVisibilityCircle;
+    GroundOverlay visibilityCircle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,8 +71,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         setUpMapIfNeeded();
         mHandler.postDelayed(fetchData, 0);
-
-
     }
 
     Runnable fetchData = new Runnable() {
@@ -239,12 +235,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                         .anchor(0.5f, 0.5f)
         );
 
-        mUserVisibilityCircle = mMap.addCircle(new CircleOptions()
-                        .center(mUserLocation)
-                        .strokeColor(R.color.gray)
-                        .strokeWidth(4)
-                        .radius(10)
-        );
+        // user visibility circle
+        visibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromBitmap(Tools.getMarker(this)))
+                .anchor(0.5f, 0.5f)
+                .position(new LatLng(0, 0), 500000f));
+
     }
 
 
@@ -261,9 +257,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mUserMarker.setPosition(mUserLocation);
 
         // plane visibiity circle - radius will depend on the actual visibilty retreived from some weather API (TODO:)
-        mUserVisibilityCircle.setCenter(mUserLocation);
-        mUserVisibilityCircle.setRadius(5000);
-
+        visibilityCircle.setPosition(mUserLocation);
+        visibilityCircle.setDimensions(5000f);
     }
 
     @Override
@@ -299,4 +294,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
+
+
 }
