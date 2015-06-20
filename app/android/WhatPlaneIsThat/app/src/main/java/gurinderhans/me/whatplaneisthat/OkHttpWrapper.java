@@ -44,6 +44,10 @@ public class OkHttpWrapper {
 
             @Override
             public void onResponse(final Response response) throws IOException {
+
+                // convert raw data to json
+                final JsonObject jsonObject = Tools.stringToJsonObject(response.body());
+
                 // send the callback on the main thread
                 mainHandler.post(new Runnable() {
                     @Override
@@ -52,7 +56,7 @@ public class OkHttpWrapper {
                         cb.onFinished();
 
                         if (response.isSuccessful()) {
-                            cb.onSuccess(Tools.stringToJsonObject(response.body()));
+                            cb.onSuccess(jsonObject);
                             return;
                         }
 

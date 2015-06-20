@@ -13,13 +13,13 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.util.Pair;
 import android.view.MotionEvent;
+import android.view.View;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
@@ -38,31 +38,26 @@ import java.util.Map;
 public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener, OnMarkerClickListener {
 
     // TODO: Estimate plane location and make it move in "realtime"
-    // TODO: Get plane rotation
-    // TODO: get user location with rotation
+    // TODO: use plane speed to make planes move in real-time and then adjust location on new HTTP req.
     // TODO: guess which planes "I" might be able to see
     // TODO: get current visibility and user location & rotation to create the user marker
     //       that simulates it virtually, like a torch effect that would show planes maybe
     //       in user's view
-    // TODO: use plane speed to make planes move in real-time and then adjust location on new HTTP req.
 
 
     protected static final String TAG = MainActivity.class.getSimpleName();
 
-    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     Handler mHandler = new Handler();
     OkHttpWrapper mWrapper;
     List<Pair<String, Marker>> mPlaneMarkers;
-
     boolean followUser = false;
-    boolean touchedScreen = false;
 
+    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     SensorManager mSensorManager;
     LocationManager mLocationManager;
     LatLng mUserLocation;
     Marker mUserMarker;
     GroundOverlay visibilityCircle;
-    CameraPosition mPrevCameraPosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,26 +65,31 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         setContentView(R.layout.activity_main);
 
         mPlaneMarkers = new ArrayList<>();
-        mWrapper = new OkHttpWrapper(this);
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        mUserLocation = new LatLng(0, 0);
+        mWrapper = new OkHttpWrapper(this);
+
+        // get cached location
+        Location cachedLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
+
+        (findViewById(R.id.lockToLocation)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                followUser = true;
+                Log.i(TAG, "Follow user: " + followUser);
+            }
+        });
 
         setUpMapIfNeeded();
-        mHandler.postDelayed(fetchData, 0);
-
-        mMap.setOnMarkerClickListener(this);
-
     }
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        Log.i(TAG, "touched screen: " + ev.toString());
-
         if (ev.getAction() == MotionEvent.ACTION_MOVE) {
+            // TODO: maybe wanna track distance and set to true if past a certain dist?
             followUser = false;
         }
-
         return super.dispatchTouchEvent(ev);
     }
 
@@ -195,9 +195,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         super.onResume();
         setUpMapIfNeeded();
 
-        // assign location update request
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000l, 0f, this);
+        // fech data
+        mHandler.postDelayed(fetchData, 0);
 
+        // register different types of listeners
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000l, 0f, this);
         mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_GAME);
 
     }
@@ -205,10 +207,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     protected void onPause() {
         super.onPause();
-        // remove gps listener
-        mLocationManager.removeUpdates(this);
 
-        // remove sensor listener
+        // remove runnable
+        mHandler.removeCallbacks(fetchData);
+
+        // remove listeners
+        mLocationManager.removeUpdates(this);
         mSensorManager.unregisterListener(this);
     }
 
@@ -247,8 +251,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
-        Location cachedLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-        mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
+
+        // user marker
         mUserMarker = mMap.addMarker(new MarkerOptions().position(mUserLocation)
                         .icon(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_marker, -1, -1)))
                         .rotation(0f)
@@ -257,14 +261,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         );
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, 12f));
 
-        // set initial camera position
-        mPrevCameraPosition = mMap.getCameraPosition();
-
         // user visibility circle
         visibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
                 .image(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_visibility, -1, -1)))
                 .anchor(0.5f, 0.5f)
-                .position(new LatLng(0, 0), 500000f));
+                .position(mUserLocation, 500000f));
+
+        // marker click listener
+        mMap.setOnMarkerClickListener(this);
 
     }
 
@@ -335,7 +339,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public boolean onMarkerClick(Marker marker) {
         Log.i(TAG, "normal marker clicked");
-        followUser = true;// (marker == mUserMarker);
         return true;
     }
 }
