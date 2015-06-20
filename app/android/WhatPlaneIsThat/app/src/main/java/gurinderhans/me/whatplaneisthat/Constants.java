@@ -12,4 +12,6 @@ public class Constants {
     public static String PLANE_NAME_SPLITTER = "-||-";
 
     public static final long REFRESH_INTERVAL = 10000l;
+
+    public static final float MAP_CAMERA_LOCK_MIN_ZOOM = 12f;
 }

@@ -1,5 +1,7 @@
 package gurinderhans.me.whatplaneisthat;
 
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -7,6 +9,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
@@ -14,6 +17,8 @@ import android.util.Log;
 import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.ImageButton;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -51,6 +56,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     OkHttpWrapper mWrapper;
     List<Pair<String, Marker>> mPlaneMarkers;
     boolean followUser = false;
+    boolean cameraAnimationFinished = false;
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     SensorManager mSensorManager;
@@ -58,6 +64,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     LatLng mUserLocation;
     Marker mUserMarker;
     GroundOverlay visibilityCircle;
+
+    ImageButton mLockCameraLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,10 +81,24 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         Location cachedLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
         mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
 
-        (findViewById(R.id.lockToLocation)).setOnClickListener(new View.OnClickListener() {
+        mLockCameraLocation = (ImageButton) findViewById(R.id.lockToLocation);
+        mLockCameraLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 followUser = true;
+                cameraAnimationFinished = false;
+                mLockCameraLocation.setImageResource(R.drawable.ic_gps_fixed_blue_24dp);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, Constants.MAP_CAMERA_LOCK_MIN_ZOOM), new GoogleMap.CancelableCallback() {
+                    @Override
+                    public void onFinish() {
+                        cameraAnimationFinished = true;
+                    }
+
+                    @Override
+                    public void onCancel() {
+
+                    }
+                });
                 Log.i(TAG, "Follow user: " + followUser);
             }
         });
@@ -89,6 +111,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         if (ev.getAction() == MotionEvent.ACTION_MOVE) {
             // TODO: maybe wanna track distance and set to true if past a certain dist?
             followUser = false;
+            mLockCameraLocation.setImageResource(R.drawable.ic_gps_fixed_black_24dp);
         }
         return super.dispatchTouchEvent(ev);
     }
@@ -143,7 +166,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                                                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
                                                 .title(plane.name)
                                                 .rotation(plane.rotation)
-                                                .anchor(0.5f, 0.5f)
                                                 .flat(true)));
                                         mPlaneMarkers.add(planeMarker);
 
@@ -267,8 +289,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                 .anchor(0.5f, 0.5f)
                 .position(mUserLocation, 500000f));
 
+        // hide the marker toolbar - the two buttons on the bottom right that go to google maps
+        mMap.getUiSettings().setMapToolbarEnabled(false);
+
         // marker click listener
-        mMap.setOnMarkerClickListener(this);
+//        mMap.setOnMarkerClickListener(this);
 
     }
 
@@ -286,15 +311,29 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mUserLocation = new LatLng(location.getLatitude(), location.getLongitude());
         mUserMarker.setPosition(mUserLocation);
 
-        Log.i(TAG, "follow user: " + followUser);
-
-        // follow user maker
-        if (followUser)
-            mMap.animateCamera(CameraUpdateFactory.newLatLng(mUserLocation));
-
         // plane visibiity circle - radius will depend on the actual visibilty retreived from some weather API ( TODO )
         visibilityCircle.setPosition(mUserLocation);
         visibilityCircle.setDimensions(5000f);
+
+        Log.i(TAG, "follow user: " + followUser);
+
+        // follow user maker
+        if (followUser && cameraAnimationFinished) {
+            cameraAnimationFinished = false;
+            float zoom = (mMap.getCameraPosition().zoom < Constants.MAP_CAMERA_LOCK_MIN_ZOOM) ? Constants.MAP_CAMERA_LOCK_MIN_ZOOM : mMap.getCameraPosition().zoom;
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, zoom), new GoogleMap.CancelableCallback() {
+                @Override
+                public void onFinish() {
+                    cameraAnimationFinished = true;
+                }
+
+                @Override
+                public void onCancel() {
+
+                }
+            });
+        }
+
     }
 
     @Override
