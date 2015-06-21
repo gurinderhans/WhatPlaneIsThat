@@ -127,8 +127,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     Runnable fetchData = new Runnable() {
         @Override
         public void run() {
-            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, 100);
-            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, 100);
+            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
+            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
             mWrapper.getJson(Constants.BASE_URL + String.format(Constants.OPTIONS_FORMAT,
                             // map bounds
                             north_west.latitude + "",
@@ -138,7 +138,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                     new OkHttpWrapper.HttpCallback() {
                         @Override
                         public void onFailure(Response response, Throwable throwable) {
-                            //
                         }
 
                         @Override
@@ -160,11 +159,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                                             dataArr.get(1).getAsDouble(),
                                             dataArr.get(2).getAsDouble());
 
-//                                    String planeName = plane.name + Constants.PLANE_NAME_SPLITTER + plane.name2;
-
-                                    LatLngBounds searchBounds = new LatLngBounds(GeoLocation.boundingBox(mUserLocation, 225, 100), GeoLocation.boundingBox(mUserLocation, 45, 100));
-
-                                    Log.i(TAG, "bounds: " + searchBounds.toString());
+                                    LatLngBounds searchBounds = new LatLngBounds(GeoLocation.boundingBox(mUserLocation, 225, Constants.SEARCH_RADIUS), GeoLocation.boundingBox(mUserLocation, 45, Constants.SEARCH_RADIUS));
 
                                     int markerIndex = getPlaneMarkerIndex(plane.idName);
 
@@ -180,6 +175,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                                     } else {
 
                                         if (!searchBounds.contains(new LatLng(plane.latitude, plane.longitude))) {
+                                            // FIXME: not working
                                             // remove the marker
                                             mPlaneMarkers.get(markerIndex).second.remove();
                                             Log.i(TAG, "removed plane:" + mPlaneMarkers.get(markerIndex).first.idName);
@@ -430,6 +426,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
                         JsonObject data = (JsonObject) jsonData;
 
+                        // hide overlay once clicked
+                        // NOTE: this will probably be replaced down the road by the listview and etc
+                        View noPlaneMarkerSelectedOverlay = findViewById(R.id.no_plane_marker_selected);
+                        if (noPlaneMarkerSelectedOverlay.getVisibility() == View.VISIBLE)
+                            noPlaneMarkerSelectedOverlay.setVisibility(View.INVISIBLE);
+
                         JsonElement planeName = data.get(Constants.KEY_AIRCRAFT_NAME),
                                 airlineName = data.get(Constants.KEY_AIRLINE_NAME),
                                 planeFrom = data.get(Constants.KEY_PLANE_FROM),
@@ -439,11 +441,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                         ((TextView) findViewById(R.id.planeName)).setText((planeName != null) ? planeName.getAsString() : (!mCurrentFocusedPlane.first.name.isEmpty()) ? mCurrentFocusedPlane.first.name : "No Callsign");
                         ((TextView) findViewById(R.id.airlineName)).setText((airlineName != null) ? airlineName.getAsString() : "Unknown Airlines");
 
-
                         // plane from -> to airports
                         ((TextView) findViewById(R.id.planeFrom)).setText((planeFrom != null) ? planeFrom.getAsString() : "N/a");
                         ((TextView) findViewById(R.id.planeTo)).setText((planeTo != null) ? planeTo.getAsString() : "N/a");
-                        ((ImageView) findViewById(R.id.plane_from_to_img)).setImageResource(R.drawable.plane_from_to);
 
 
                         // remove polyline if exists
@@ -452,7 +452,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                         JsonArray trailArray = data.getAsJsonArray(Constants.KEY_PLANE_MAP_TRAIL);
 
                         PolylineOptions line = new PolylineOptions().width(10).color(R.color.visibility_circle_color);
-                        line.add(mCurrentFocusedPlane.second.getPosition());
 
                         for (int i = 0; i < trailArray.size(); i += 5) { // ignore +3,4...
                             line.add(new LatLng(trailArray.get(i).getAsDouble(), trailArray.get(i + 1).getAsDouble()));
@@ -463,7 +462,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
                     @Override
                     public void onFinished() {
-
                     }
                 });
             }

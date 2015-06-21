@@ -1,57 +1,62 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.sothree.slidinguppanel.SlidingUpPanelLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:sothree="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/sliding_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:gravity="bottom"
+    sothree:umanoAnchorPoint="0.4"
+    sothree:umanoFadeColor="@android:color/transparent"
+    sothree:umanoPanelHeight="68dp"
+    sothree:umanoShadowHeight="4dp"
     tools:context=".MainActivity">
 
-    <com.sothree.slidinguppanel.SlidingUpPanelLayout xmlns:sothree="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/sliding_layout"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/white"
-        android:gravity="bottom"
-        sothree:umanoAnchorPoint="0.4"
-        sothree:umanoFadeColor="@android:color/transparent"
-        sothree:umanoPanelHeight="68dp"
-        sothree:umanoShadowHeight="4dp">
+        android:layout_height="match_parent">
 
-        <RelativeLayout
+        <fragment
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent" />
 
-            <fragment
-                android:id="@+id/map"
-                android:name="com.google.android.gms.maps.SupportMapFragment"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+        <ImageButton
+            android:id="@+id/lockToLocation"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_marginBottom="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginRight="20dp"
+            android:background="@drawable/circle"
+            android:contentDescription="Current Location"
+            android:src="@drawable/ic_gps_fixed_black_24dp" />
 
-            <ImageButton
-                android:id="@+id/lockToLocation"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_alignParentBottom="true"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentRight="true"
-                android:layout_marginBottom="20dp"
-                android:layout_marginEnd="20dp"
-                android:layout_marginRight="20dp"
-                android:background="@drawable/circle"
-                android:contentDescription="Current Location"
-                android:src="@drawable/ic_gps_fixed_black_24dp" />
+    </RelativeLayout>
 
-        </RelativeLayout>
+    <!-- Pane Content -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-        <!-- Pane Content -->
-        <RelativeLayout
+        <include
+            layout="@layout/panelbar_top"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="68dp" />
 
-            <include
-                layout="@layout/panelbar_top"
-                android:layout_width="match_parent"
-                android:layout_height="68dp" />
+        <TextView
+            android:id="@+id/no_plane_marker_selected"
+            android:layout_width="match_parent"
+            android:layout_height="68dp"
+            android:layout_marginTop="15dp"
+            android:background="@android:color/white"
+            android:gravity="center_horizontal"
+            android:text="@string/no_plane_marker_selected"
+            android:textSize="18sp" />
 
-        </RelativeLayout>
-    </com.sothree.slidinguppanel.SlidingUpPanelLayout>
-
-</RelativeLayout>
+    </RelativeLayout>
+</com.sothree.slidinguppanel.SlidingUpPanelLayout>
