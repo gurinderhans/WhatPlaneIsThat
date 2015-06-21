@@ -2,5 +2,8 @@
     <string name="app_name">WhatPlaneIsThat</string>
     <string name="title_activity_main">Finder</string>
 
+    <string name="no_plane_marker_selected">Tap a plane to get it\'s info.</string>
+
     <color name="visibility_circle_color">#5199dc</color>
+
 </resources>

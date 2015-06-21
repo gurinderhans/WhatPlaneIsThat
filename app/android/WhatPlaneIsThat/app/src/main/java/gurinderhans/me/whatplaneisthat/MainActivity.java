@@ -1,7 +1,5 @@
 package gurinderhans.me.whatplaneisthat;
 
-import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -9,16 +7,17 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.util.Pair;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -31,9 +30,12 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.squareup.okhttp.Response;
 
 import java.util.ArrayList;
@@ -54,7 +56,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     Handler mHandler = new Handler();
     OkHttpWrapper mWrapper;
-    List<Pair<String, Marker>> mPlaneMarkers;
+    List<Pair<Plane, Marker>> mPlaneMarkers;
+    Pair<Plane, Marker> mCurrentFocusedPlane;
     boolean followUser = false;
     boolean cameraAnimationFinished = false;
 
@@ -64,8 +67,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     LatLng mUserLocation;
     Marker mUserMarker;
     GroundOverlay visibilityCircle;
+    Polyline mCurrentDrawnPolyline; // only one polyline at a time
 
     ImageButton mLockCameraLocation;
+    SlidingUpPanelLayout mSlidingUpPanelLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +87,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
 
         mLockCameraLocation = (ImageButton) findViewById(R.id.lockToLocation);
+        mSlidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+
+
         mLockCameraLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -99,9 +107,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
                     }
                 });
-                Log.i(TAG, "Follow user: " + followUser);
             }
         });
+
 
         setUpMapIfNeeded();
     }
@@ -145,26 +153,26 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                                     Plane plane = new Plane(dataArr.get(16).getAsString(),
                                             dataArr.get(12).getAsString(),
                                             dataArr.get(13).getAsString(),
+                                            entry.getKey(),
                                             dataArr.get(3).getAsFloat(),
                                             dataArr.get(4).getAsFloat(),
                                             dataArr.get(5).getAsFloat(),
                                             dataArr.get(1).getAsDouble(),
                                             dataArr.get(2).getAsDouble());
 
-                                    String planeName = plane.name + Constants.PLANE_NAME_SPLITTER + plane.name2;
+//                                    String planeName = plane.name + Constants.PLANE_NAME_SPLITTER + plane.name2;
 
                                     LatLngBounds searchBounds = new LatLngBounds(GeoLocation.boundingBox(mUserLocation, 225, 100), GeoLocation.boundingBox(mUserLocation, 45, 100));
 
                                     Log.i(TAG, "bounds: " + searchBounds.toString());
 
-                                    int markerIndex = getPlaneMarkerIndex(planeName);
+                                    int markerIndex = getPlaneMarkerIndex(plane.idName);
 
                                     // add to list if not already
                                     if (markerIndex == -1) {
-                                        Pair<String, Marker> planeMarker = Pair.create(planeName, mMap.addMarker(new MarkerOptions()
+                                        Pair<Plane, Marker> planeMarker = Pair.create(plane, mMap.addMarker(new MarkerOptions()
                                                 .position(new LatLng(plane.latitude, plane.longitude))
                                                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
-                                                .title(plane.name)
                                                 .rotation(plane.rotation)
                                                 .flat(true)));
                                         mPlaneMarkers.add(planeMarker);
@@ -174,13 +182,20 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                                         if (!searchBounds.contains(new LatLng(plane.latitude, plane.longitude))) {
                                             // remove the marker
                                             mPlaneMarkers.get(markerIndex).second.remove();
-                                            Log.i(TAG, "removed plane:" + mPlaneMarkers.get(markerIndex).first);
+                                            Log.i(TAG, "removed plane:" + mPlaneMarkers.get(markerIndex).first.idName);
                                             mPlaneMarkers.remove(markerIndex);
                                         } else {
                                             // update its location
                                             Marker marker = mPlaneMarkers.get(markerIndex).second;
                                             marker.setPosition(new LatLng(plane.latitude, plane.longitude));
                                             marker.setRotation(plane.rotation);
+
+                                            // update polyline
+                                            if (mCurrentDrawnPolyline != null && mCurrentFocusedPlane == mPlaneMarkers.get(markerIndex)) {
+                                                List<LatLng> points = mCurrentDrawnPolyline.getPoints();
+                                                points.add(0, new LatLng(plane.latitude, plane.longitude));
+                                                mCurrentDrawnPolyline.setPoints(points);
+                                            }
                                         }
                                     }
                                 }
@@ -196,6 +211,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
     };
 
+
     /**
      * Checks if given plane name is in mPlaneMarkers
      *
@@ -205,7 +221,22 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     public int getPlaneMarkerIndex(String name) {
 
         for (int i = 0; i < mPlaneMarkers.size(); i++) {
-            if (mPlaneMarkers.get(i).first.equals(name))
+            if (mPlaneMarkers.get(i).first.idName.equals(name))
+                return i;
+        }
+
+        return -1;
+    }
+
+    /**
+     * Checks if given plane name is in mPlaneMarkers
+     *
+     * @param planeMarker - plane marker
+     * @return - index of the plane in the list, -1 if not found
+     */
+    public int getPlaneMarkerIndex(Marker planeMarker) {
+        for (int i = 0; i < mPlaneMarkers.size(); i++) {
+            if (mPlaneMarkers.get(i).second.equals(planeMarker))
                 return i;
         }
 
@@ -293,7 +324,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mMap.getUiSettings().setMapToolbarEnabled(false);
 
         // marker click listener
-//        mMap.setOnMarkerClickListener(this);
+        mMap.setOnMarkerClickListener(this);
 
     }
 
@@ -320,6 +351,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         // follow user maker
         if (followUser && cameraAnimationFinished) {
             cameraAnimationFinished = false;
+            // FIXME: zoom value not corrected properly
             float zoom = (mMap.getCameraPosition().zoom < Constants.MAP_CAMERA_LOCK_MIN_ZOOM) ? Constants.MAP_CAMERA_LOCK_MIN_ZOOM : mMap.getCameraPosition().zoom;
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, zoom), new GoogleMap.CancelableCallback() {
                 @Override
@@ -378,6 +410,65 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public boolean onMarkerClick(Marker marker) {
         Log.i(TAG, "normal marker clicked");
+
+        if (marker != mUserMarker) {
+            int index = getPlaneMarkerIndex(marker);
+
+            if (index != -1) {
+                mCurrentFocusedPlane = mPlaneMarkers.get(index);
+
+                mWrapper.getJson(String.format(Constants.PLANE_DATA_URL, mCurrentFocusedPlane.first.planekey), new OkHttpWrapper.HttpCallback() {
+                    @Override
+                    public void onFailure(Response response, Throwable throwable) {
+
+                    }
+
+                    @Override
+                    public void onSuccess(Object jsonData) {
+
+                        // TODO: make sure all views get filled and they aren't empty
+
+                        JsonObject data = (JsonObject) jsonData;
+
+                        JsonElement planeName = data.get(Constants.KEY_AIRCRAFT_NAME),
+                                airlineName = data.get(Constants.KEY_AIRLINE_NAME),
+                                planeFrom = data.get(Constants.KEY_PLANE_FROM),
+                                planeTo = data.get(Constants.KEY_PLANE_TO);
+
+                        // plane name and airline name
+                        ((TextView) findViewById(R.id.planeName)).setText((planeName != null) ? planeName.getAsString() : (!mCurrentFocusedPlane.first.name.isEmpty()) ? mCurrentFocusedPlane.first.name : "No Callsign");
+                        ((TextView) findViewById(R.id.airlineName)).setText((airlineName != null) ? airlineName.getAsString() : "Unknown Airlines");
+
+
+                        // plane from -> to airports
+                        ((TextView) findViewById(R.id.planeFrom)).setText((planeFrom != null) ? planeFrom.getAsString() : "N/a");
+                        ((TextView) findViewById(R.id.planeTo)).setText((planeTo != null) ? planeTo.getAsString() : "N/a");
+                        ((ImageView) findViewById(R.id.plane_from_to_img)).setImageResource(R.drawable.plane_from_to);
+
+
+                        // remove polyline if exists
+                        if (mCurrentDrawnPolyline != null) mCurrentDrawnPolyline.remove();
+
+                        JsonArray trailArray = data.getAsJsonArray(Constants.KEY_PLANE_MAP_TRAIL);
+
+                        PolylineOptions line = new PolylineOptions().width(10).color(R.color.visibility_circle_color);
+                        line.add(mCurrentFocusedPlane.second.getPosition());
+
+                        for (int i = 0; i < trailArray.size(); i += 5) { // ignore +3,4...
+                            line.add(new LatLng(trailArray.get(i).getAsDouble(), trailArray.get(i + 1).getAsDouble()));
+                        }
+
+                        mCurrentDrawnPolyline = mMap.addPolyline(line);
+                    }
+
+                    @Override
+                    public void onFinished() {
+
+                    }
+                });
+            }
+        }
+
         return true;
     }
 }

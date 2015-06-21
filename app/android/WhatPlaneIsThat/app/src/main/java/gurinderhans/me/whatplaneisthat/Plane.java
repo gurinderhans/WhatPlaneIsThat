@@ -5,14 +5,16 @@ package gurinderhans.me.whatplaneisthat;
  */
 public class Plane {
 
-    String name, landingAt, name2;
+    String name, landingAt, name2, idName, planekey;
     float rotation, altitude, speed;
     double latitude, longitude;
 
-    public Plane(String name, String landingAt, String name2, float rotation, float altitude, float speed, double lat, double lng) {
+    public Plane(String name, String landingAt, String name2, String key, float rotation, float altitude, float speed, double lat, double lng) {
         this.name = name;
         this.landingAt = landingAt;
         this.name2 = name2;
+        this.idName = name + Constants.PLANE_NAME_SPLITTER + name2;
+        this.planekey = key;
 
         this.rotation = rotation;
         this.altitude = altitude;
@@ -21,4 +23,5 @@ public class Plane {
         this.latitude = lat;
         this.longitude = lng;
     }
+
 }
