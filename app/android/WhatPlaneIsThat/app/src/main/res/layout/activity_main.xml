@@ -13,6 +13,7 @@
     tools:context=".MainActivity">
 
     <RelativeLayout
+        android:id="@+id/panelMainContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -38,25 +39,25 @@
 
     </RelativeLayout>
 
-    <!-- Pane Content -->
+    <!-- Panel Content -->
+
     <RelativeLayout
+        android:id="@+id/panelContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <include
-            layout="@layout/panelbar_top"
+            android:id="@+id/panelCollapsedView"
+            layout="@layout/collapsed_panel_layout"
             android:layout_width="match_parent"
             android:layout_height="68dp" />
 
-        <TextView
-            android:id="@+id/no_plane_marker_selected"
+        <include
+            android:id="@+id/panelAnchoredView"
+            layout="@layout/anchored_panel_layout"
             android:layout_width="match_parent"
-            android:layout_height="68dp"
-            android:layout_marginTop="15dp"
-            android:background="@android:color/white"
-            android:gravity="center_horizontal"
-            android:text="@string/no_plane_marker_selected"
-            android:textSize="18sp" />
+            android:layout_height="match_parent" />
 
     </RelativeLayout>
+
 </com.sothree.slidinguppanel.SlidingUpPanelLayout>

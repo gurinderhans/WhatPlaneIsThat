@@ -12,11 +12,12 @@ import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.util.Pair;
-import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -42,7 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener, OnMarkerClickListener {
+public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener, OnMarkerClickListener, SlidingUpPanelLayout.PanelSlideListener {
 
     // TODO: Estimate plane location and make it move in "realtime"
     // TODO: use plane speed to make planes move in real-time and then adjust location on new HTTP req.
@@ -72,6 +73,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     ImageButton mLockCameraLocation;
     SlidingUpPanelLayout mSlidingUpPanelLayout;
 
+    // panel views
+    View collapsedView;
+    View anchoredView;
+    View expandedView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,6 +94,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         mLockCameraLocation = (ImageButton) findViewById(R.id.lockToLocation);
         mSlidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+
+        collapsedView = findViewById(R.id.panelCollapsedView);
+        anchoredView = findViewById(R.id.panelAnchoredView);
+
+        // hide other views
+        anchoredView.setVisibility(View.INVISIBLE);
 
 
         mLockCameraLocation.setOnClickListener(new View.OnClickListener() {
@@ -112,6 +124,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 
         setUpMapIfNeeded();
+
+        // panel slide listener for layout stuff
+        mSlidingUpPanelLayout.setPanelSlideListener(this);
     }
 
     @Override
@@ -413,7 +428,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             if (index != -1) {
                 mCurrentFocusedPlane = mPlaneMarkers.get(index);
 
-                mWrapper.getJson(String.format(Constants.PLANE_DATA_URL, mCurrentFocusedPlane.first.planekey), new OkHttpWrapper.HttpCallback() {
+                mWrapper.getJson(String.format(Constants.PLANE_DATA_URL, mCurrentFocusedPlane.first.plane_key), new OkHttpWrapper.HttpCallback() {
                     @Override
                     public void onFailure(Response response, Throwable throwable) {
 
@@ -426,20 +441,18 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
                         JsonObject data = (JsonObject) jsonData;
 
-                        // hide overlay once clicked
-                        // NOTE: this will probably be replaced down the road by the listview and etc
-                        View noPlaneMarkerSelectedOverlay = findViewById(R.id.no_plane_marker_selected);
-                        if (noPlaneMarkerSelectedOverlay.getVisibility() == View.VISIBLE)
-                            noPlaneMarkerSelectedOverlay.setVisibility(View.INVISIBLE);
-
                         JsonElement planeName = data.get(Constants.KEY_AIRCRAFT_NAME),
                                 airlineName = data.get(Constants.KEY_AIRLINE_NAME),
-                                planeFrom = data.get(Constants.KEY_PLANE_FROM),
-                                planeTo = data.get(Constants.KEY_PLANE_TO);
+                                planeFrom = data.get(Constants.KEY_PLANE_SHORT_FROM),
+                                planeTo = data.get(Constants.KEY_PLANE_SHORT_TO);
+
+                        Plane plane = mCurrentFocusedPlane.first;
+                        plane.setAircraftName((planeName != null) ? planeName.getAsString() : (!mCurrentFocusedPlane.first.name.isEmpty()) ? mCurrentFocusedPlane.first.name : "No Callsign");
+                        plane.setPlaneAirlines((airlineName != null) ? airlineName.getAsString() : "Unknown Airlines");
 
                         // plane name and airline name
-                        ((TextView) findViewById(R.id.planeName)).setText((planeName != null) ? planeName.getAsString() : (!mCurrentFocusedPlane.first.name.isEmpty()) ? mCurrentFocusedPlane.first.name : "No Callsign");
-                        ((TextView) findViewById(R.id.airlineName)).setText((airlineName != null) ? airlineName.getAsString() : "Unknown Airlines");
+                        ((TextView) findViewById(R.id.planeName)).setText(plane.getAircraftName());
+                        ((TextView) findViewById(R.id.airlineName)).setText(plane.getAircraftName());
 
                         // plane from -> to airports
                         ((TextView) findViewById(R.id.planeFrom)).setText((planeFrom != null) ? planeFrom.getAsString() : "N/a");
@@ -469,4 +482,109 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         return true;
     }
+
+
+    //
+    // MARK: Panel slide listener
+    //
+
+    @Override
+    public void onPanelSlide(View view, float v) {
+        Log.i(TAG, "panel sliding: " + v);
+    }
+
+    @Override
+    public void onPanelCollapsed(View view) {
+        Log.i(TAG, "panel collapsed");
+
+        // bring back the panel short view
+//        fadeInAndShowView(findViewById(R.id.panelCollapsedView), 50l);
+        anchoredToCollapsed(100l);
+    }
+
+    @Override
+    public void onPanelExpanded(View view) {
+        Log.i(TAG, "panel expanded");
+    }
+
+    @Override
+    public void onPanelAnchored(View view) {
+        Log.i(TAG, "panel anchored");
+//        fadeOutAndHideView(findViewById(R.id.panelCollapsedView), 50l);
+        collapsedToAnchored(100l);
+    }
+
+    @Override
+    public void onPanelHidden(View view) {
+        Log.i(TAG, "panel hidden");
+    }
+
+
+    //
+    // MARK: panel view transitions
+    //
+
+    private void collapsedToAnchored(final long duration) {
+        Animation animation = new AlphaAnimation(1, 0);
+        animation.setInterpolator(new AccelerateInterpolator());
+        animation.setDuration(duration);
+
+        animation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+                // show anchored view
+                Animation animation1 = new AlphaAnimation(0, 1);
+                anchoredView.setVisibility(View.VISIBLE);
+                animation1.setInterpolator(new AccelerateInterpolator());
+                animation1.setDuration(duration);
+                anchoredView.startAnimation(animation1);
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                collapsedView.setVisibility(View.GONE);
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
+
+        collapsedView.startAnimation(animation);
+    }
+
+    private void anchoredToCollapsed(final long duration) {
+
+        Animation animation = new AlphaAnimation(1, 0);
+        animation.setInterpolator(new AccelerateInterpolator());
+        animation.setDuration(duration);
+
+        animation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+                // show anchored view
+                Animation animation1 = new AlphaAnimation(0, 1);
+                collapsedView.setVisibility(View.VISIBLE);
+                animation1.setInterpolator(new AccelerateInterpolator());
+                animation1.setDuration(duration);
+                collapsedView.startAnimation(animation1);
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                anchoredView.setVisibility(View.GONE);
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
+
+        anchoredView.startAnimation(animation);
+    }
+
 }
