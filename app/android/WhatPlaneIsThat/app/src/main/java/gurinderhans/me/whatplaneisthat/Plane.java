@@ -1,9 +1,17 @@
 package gurinderhans.me.whatplaneisthat;
 
+import android.graphics.drawable.Drawable;
+import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Pair;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.JsonArray;
+import com.squareup.okhttp.ResponseBody;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Created by ghans on 6/15/15.
@@ -21,11 +29,16 @@ public class Plane {
     private LatLng planePos;
     private JsonArray planeTrail;
 
+    private Pair<Drawable, Integer> planeImage;
+    private String planeImageUrl;
+
     private long planeArrivalTime, planeDepartureTime;
 
     private float rotation, altitude, speed;
 
-    // TODO: rewrite constructor
+    private boolean isCached = false;
+
+    // FIXME: rewrite constructor
     public Plane(String name, String landingAt, String name2, String key, float rotation, float altitude, float speed, double lat, double lng) {
         this.name = name;
         this.landingAt = landingAt;
@@ -44,8 +57,20 @@ public class Plane {
 
 
     /**
-     * Get plane name
-     *
+     * @param isCached - boolean value if plane has been cached in memory or not
+     */
+    public void setIsCached(boolean isCached) {
+        this.isCached = isCached;
+    }
+
+    /**
+     * @return - boolean value if plane is cached or not
+     */
+    public boolean isCached() {
+        return isCached;
+    }
+
+    /**
      * @return - the plane name
      */
     public String getPlaneName() {
@@ -60,8 +85,50 @@ public class Plane {
     }
 
     /**
-     * Set the plane's path trail
+     * Set plane's image url and image
      *
+     * @param url   - HTTP url of the image
+     * @param image - a pair of drawable and an image color (average color of image)
+     */
+    public void setPlaneImage(String url, Pair<Drawable, Integer> image) {
+        this.planeImageUrl = url;
+        this.planeImage = image;
+    }
+
+    /**
+     * @return - the HTTP url of the image
+     */
+    public String getPlaneImageUrl() {
+        if (planeImageUrl != null && !planeImageUrl.isEmpty())
+            return planeImageUrl;
+        return "N/a";
+    }
+
+    /**
+     * @return - the tuple containing image drawable and average image color
+     */
+    public Pair<Drawable, Integer> getPlaneImage() {
+        return planeImage;
+    }
+
+    /**
+     * @param planeArrivalTime - the time in unix timestamp
+     */
+    public void setPlaneArrivalTime(long planeArrivalTime) {
+        this.planeArrivalTime = planeArrivalTime;
+    }
+
+    /**
+     * @return - the plane arrival time
+     */
+    public String getPlaneArrivalTime() {
+        if (planeArrivalTime == -1l) return "N/a";
+
+        Date date = new Date(planeArrivalTime * 1000l);
+        return new SimpleDateFormat("h:mma").format(date).toLowerCase();
+    }
+
+    /**
      * @param planeTrail - the plain trail with JsonArray
      */
     public void setPlaneTrail(JsonArray planeTrail) {
@@ -128,9 +195,10 @@ public class Plane {
      * @return - aircraft name
      */
     public String getAircraftName() {
-        return aircraftName;
+        if (aircraftName != null && !aircraftName.isEmpty())
+            return aircraftName;
+        return "Unknown Plane Name";
     }
-
 
     /**
      * Set aircraft's airlines name
@@ -147,7 +215,9 @@ public class Plane {
      * @return - airline name
      */
     public String getAirlineName() {
-        return airlineName;
+        if (airlineName != null && !airlineName.isEmpty())
+            return airlineName;
+        return "Unknown Airlines";
     }
 
     /**
@@ -179,8 +249,13 @@ public class Plane {
      * @return - destination name
      */
     public String getDestinationNameTo(boolean fullName) {
-        if (fullName) return destinationTo.second;
-        return destinationTo.first;
+        if (destinationTo != null) {
+            if (fullName && !destinationTo.second.isEmpty())
+                return destinationTo.second;
+            if (!destinationTo.first.isEmpty())
+                return destinationTo.first;
+        }
+        return "N/a";
     }
 
     /**
@@ -190,8 +265,13 @@ public class Plane {
      * @return - destination name
      */
     public String getDestinationNameFrom(boolean fullName) {
-        if (fullName) return destinationFrom.second;
-        return destinationFrom.first;
+        if (destinationFrom != null) {
+            if (fullName && !destinationFrom.second.isEmpty())
+                return destinationFrom.second;
+            if (!destinationFrom.first.isEmpty())
+                return destinationFrom.first;
+        }
+        return "N/a";
     }
 
 
