@@ -15,6 +15,8 @@ public class Constants {
     public static final long REFRESH_INTERVAL = 10000l;
     public static final float MAP_CAMERA_LOCK_MIN_ZOOM = 12f;
 
+    public static final String UNKNOWN_VALUE = "N/aNotAssigned";
+
     // each plane data url
     public static final String PLANE_DATA_URL = "http://lhr.data.fr24.com/_external/planedata_json.1.4.php?f=%s&format=2";
     // plane data keys
