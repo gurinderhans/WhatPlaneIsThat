@@ -5,39 +5,29 @@
     android:orientation="horizontal"
     android:weightSum="1">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:layout_weight="0.57"
-        android:orientation="vertical"
-        android:paddingEnd="15dp"
-        android:paddingLeft="15dp"
-        android:paddingRight="15dp"
-        android:paddingStart="15dp">
+        android:layout_gravity="center"
+        android:layout_weight="0.3">
 
         <TextView
             android:id="@+id/planeName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:singleLine="true"
-            android:text="XYZ Aircraft 789"
-            android:textSize="16sp" />
+            android:layout_centerInParent="true"
+            android:text="XYZA71"
+            android:textSize="18sp" />
 
-        <TextView
-            android:id="@+id/airlineName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Abc Airlines" />
-    </LinearLayout>
+    </RelativeLayout>
 
     <RelativeLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
-        android:layout_weight="0.43"
-        android:background="@drawable/border">
+        android:layout_weight="0.4"
+        android:background="@drawable/border"
+        android:minHeight="48dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -50,14 +40,18 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="ABC"
-                android:textSize="22sp" />
+                android:text="WWW"
+                android:textSize="18sp" />
 
             <ImageView
                 android:id="@+id/plane_from_to_img"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:layout_gravity="center"
+                android:layout_marginEnd="3dp"
+                android:layout_marginLeft="3dp"
+                android:layout_marginRight="3dp"
+                android:layout_marginStart="3dp"
                 android:src="@drawable/plane_from_to" />
 
             <TextView
@@ -65,9 +59,41 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="XYZ"
-                android:textSize="22sp" />
+                android:text="WWW"
+                android:textSize="18sp" />
         </LinearLayout>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_weight="0.3"
+        android:background="@drawable/border"
+        android:minHeight="48dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Arrival Time"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/arrivalTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="23:03pm"
+                android:textSize="18sp" />
+        </LinearLayout>
+
     </RelativeLayout>
 
 </LinearLayout>

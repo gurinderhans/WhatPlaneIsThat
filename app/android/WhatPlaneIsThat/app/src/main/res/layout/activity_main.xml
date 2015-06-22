@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:gravity="bottom"
-    sothree:umanoAnchorPoint="0.4"
+    sothree:umanoAnchorPoint="0.6"
     sothree:umanoFadeColor="@android:color/transparent"
     sothree:umanoPanelHeight="68dp"
     sothree:umanoShadowHeight="4dp"
@@ -36,6 +36,14 @@
             android:background="@drawable/circle"
             android:contentDescription="Current Location"
             android:src="@drawable/ic_gps_fixed_black_24dp" />
+
+        <ImageView
+            android:id="@+id/planeImage"
+            android:layout_width="wrap_content"
+            android:layout_height="240dp"
+            android:layout_alignParentBottom="true"
+            android:scaleType="centerCrop"
+            android:src="@drawable/plane" />
 
     </RelativeLayout>
 
