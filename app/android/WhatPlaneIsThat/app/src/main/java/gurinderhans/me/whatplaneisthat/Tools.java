@@ -75,7 +75,20 @@ public class Tools {
         int blue = (blueColors / pixelCount);
 
         return Color.rgb(red, green, blue);
-//        return String.format("#%02x%02x%02x", red, green, blue);
+    }
+
+    // json parsing helper functions
+    public static String jsonElToString(JsonElement el) {
+        return el != null && !el.getAsString().isEmpty() ? el.getAsString() : null;
+    }
+
+    public static Long jsonElToLong(JsonElement el) {
+        try {
+            return el.getAsLong();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 }

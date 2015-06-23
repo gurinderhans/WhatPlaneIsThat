@@ -40,7 +40,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="WWW"
+                android:text="ABC"
                 android:textSize="18sp" />
 
             <ImageView
@@ -59,7 +59,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="WWW"
+                android:text="XYZ"
                 android:textSize="18sp" />
         </LinearLayout>
     </RelativeLayout>
