@@ -1,6 +1,5 @@
 package gurinderhans.me.whatplaneisthat;
 
-import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -8,23 +7,18 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
@@ -38,23 +32,20 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
-import com.squareup.okhttp.Response;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+
+import gurinderhans.me.whatplaneisthat.Models.Plane;
 
 public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener, OnMarkerClickListener, SlidingUpPanelLayout.PanelSlideListener {
 
@@ -73,7 +64,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     private static final float MAX_TRANSLATE_DP = -269.08267f;
 
     Handler mHandler = new Handler();
-    OkHttpWrapper mOkHttpWrapper;
 
     int mCurrentFocusedPlaneMarkerIndex = -1;
     List<Pair<Plane, Marker>> mPlaneMarkers = new ArrayList<>();
@@ -106,8 +96,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        mOkHttpWrapper = new OkHttpWrapper(this);
 
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -164,7 +152,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         super.onResume();
         setUpMapIfNeeded();
 
-        // fech data
+        // fetch data
         mHandler.postDelayed(fetchData, 0);
 
         // register different types of listeners
@@ -198,18 +186,36 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, new Listener<JSONObject>() {
                 @Override
                 public void onResponse(JSONObject response) {
-                    Log.i(TAG, "response: " + response);
-                    Log.i(TAG, "onMainThread: " + (Looper.myLooper() == Looper.getMainLooper()));
 
                     Iterator<String> dataIterator = response.keys();
+
                     while (dataIterator.hasNext()) {
                         String key = dataIterator.next();
-                        try {
-                            // it's plane data if we can convert to a JSONArray
-                            response.getJSONArray(key);
+
+                        try { // it's plane data if we can convert to a JSONArray
+
+                            JSONArray planeDataArr = response.getJSONArray(key);
+
+                            Plane.Builder planeBuilder = new Plane.Builder().key(key);
+
+                            if (!planeDataArr.isNull(16))
+                                planeBuilder.shortName(planeDataArr.getString(16));
+
+                            if (!planeDataArr.isNull(1) && !planeDataArr.isNull(2))
+                                planeBuilder.position(new LatLng(planeDataArr.getDouble(1), planeDataArr.getDouble(2)));
+
+                            Plane myPlane = planeBuilder.build();
+
+                            mMap.addMarker(new MarkerOptions().position(myPlane.getPlanePos())
+                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
+                                    .rotation(0f)
+                                    .flat(true));
+
+
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
+
                     }
                 }
             }, new ErrorListener() {
@@ -375,7 +381,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public boolean onMarkerClick(Marker marker) {
 
-        if (marker != mUserMarker) {
+        /*if (marker != mUserMarker) {
             mCurrentFocusedPlaneMarkerIndex = Plane.getPlaneMarkerIndex(mPlaneMarkers, marker);
 
             if (mCurrentFocusedPlaneMarkerIndex != -1) {
@@ -401,7 +407,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                     mOkHttpWrapper.getJson(String.format(Constants.PLANE_DATA_URL, selectedPlane.keyIdentifier), onFetchedPlaneInfo);
                 }
             }
-        }
+        }*/
 
         return true;
     }
@@ -427,7 +433,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     public void onPanelCollapsed(View view) {
         // bring back the panel short view
         anchoredToCollapsed(100l);
-        setCollapsedPanelData();
+//        setCollapsedPanelData();
     }
 
     @Override
@@ -437,7 +443,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public void onPanelAnchored(View view) {
         collapsedToAnchored(100l);
-        setAnchoredPanelData();
+//        setAnchoredPanelData();
 
     }
 
@@ -450,7 +456,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     // MARK: panel view data setters
     //
 
-    public void setCollapsedPanelData() {
+    /*public void setCollapsedPanelData() {
 
         if (mCurrentFocusedPlaneMarkerIndex == -1) return;
 
@@ -483,7 +489,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         ((TextView) findViewById(R.id.anchoredPanelDestFrom)).setText(plane.destinationFromShort != null ? plane.destinationFromShort : "N/a");
         ((TextView) findViewById(R.id.anchoredPanelDestTo)).setText(plane.destinationToShort != null ? plane.destinationToShort : "N/a");
 
-    }
+    }*/
 
     public void setExpandedPanelData() {
     }
@@ -556,161 +562,5 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mAnchoredView.startAnimation(animation);
     }
 
-
-    //
-    // MARK: Custom wrapper HTTP Callbacks
-    //
-
-
-    /*OkHttpWrapper.HttpCallback onFetchedAllPlanes = new OkHttpWrapper.HttpCallback() {
-        @Override
-        public void onFailure(Response response, Throwable throwable) {
-        }
-
-        @Override
-        public void onSuccess(Object data) {
-            JsonObject jsonData = (JsonObject) data;
-            for (Map.Entry<String, JsonElement> entry : jsonData.entrySet()) {
-
-                // this data is about a plane and not other json info
-                if (entry.getValue() instanceof JsonArray) {
-
-                    // used for detecting if a plane goes outside our search bounds
-                    LatLngBounds searchBounds = new LatLngBounds(
-                            GeoLocation.boundingBox(mUserLocation, 225, Constants.SEARCH_RADIUS),
-                            GeoLocation.boundingBox(mUserLocation, 45, Constants.SEARCH_RADIUS));
-
-                    Plane plane = Plane.makePlane(entry);
-
-                    int markerIndex = Plane.getPlaneMarkerIndex(mPlaneMarkers, plane.keyIdentifier);
-
-                    // add to list if not already
-                    if (markerIndex == -1) {
-                        mPlaneMarkers.add(Pair.create(plane, mMap.addMarker(new MarkerOptions()
-                                .position(plane.getPlanePos())
-                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
-                                .rotation(plane.getRotation())
-                                .flat(true))));
-                    } else {
-                        if (!searchBounds.contains(plane.getPlanePos())) {
-                            // FIXME: remove marker not working
-                            // are we losing reference to the actual marker ?
-                            mPlaneMarkers.get(markerIndex).second.remove();
-                            Log.i(TAG, "removed plane:" + plane.keyIdentifier);
-                            mPlaneMarkers.remove(markerIndex);
-                        } else {
-                            // update its location
-                            Marker marker = mPlaneMarkers.get(markerIndex).second;
-                            marker.setPosition(plane.getPlanePos());
-                            marker.setRotation(plane.getRotation());
-
-                            // update plane object in list
-                            mPlaneMarkers.set(markerIndex, Pair.create(plane, marker));
-
-                            // FIXME: better implementation?
-//                            // update polyline for this plane
-//                            if (mCurrentDrawnPolyline != null && mCurrentFocusedPlaneMarkerPair == mPlaneMarkers.get(markerIndex)) {
-//                                List<LatLng> points = mCurrentDrawnPolyline.getPoints();
-//                                points.add(0, plane.getPlanePos());
-//                                mCurrentDrawnPolyline.setPoints(points);
-//                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        @Override
-        public void onFinished() {
-            // loop with delay
-            mHandler.postDelayed(fetchData, Constants.REFRESH_INTERVAL);
-        }
-    };
-
-    OkHttpWrapper.HttpCallback onFetchedPlaneInfo = new OkHttpWrapper.HttpCallback() {
-        @Override
-        public void onFailure(Response response, Throwable throwable) {
-        }
-
-        @Override
-        public void onSuccess(Object data) {
-
-            JsonObject oData = (JsonObject) data;
-
-            Pair<Plane, Marker> oldPair = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex);
-            final Plane oldPlane = oldPair.first;
-            Marker selectedMarker = oldPair.second;
-
-            Plane newPlane = Plane.updatePlane(oldPlane, oData);
-
-            newPlane.setIsCached(true);
-
-            Log.i(TAG, "marker index: " + mCurrentFocusedPlaneMarkerIndex);
-            // update focused plane marker object
-            mPlaneMarkers.set(mCurrentFocusedPlaneMarkerIndex, Pair.create(newPlane, selectedMarker));
-
-            Log.i(TAG, "new plane cache: " + newPlane.isCached());
-
-            // update views
-            switch (mSlidingUpPanelLayout.getPanelState()) {
-                case COLLAPSED:
-                    setCollapsedPanelData();
-                    break;
-                case ANCHORED:
-                    setAnchoredPanelData();
-                    break;
-                case EXPANDED:
-                    setExpandedPanelData();
-                    break;
-                default:
-                    break;
-            }
-
-
-            try {
-                // fetch plane image
-                mOkHttpWrapper.downloadImage((newPlane.imageUrlLarge != null ? newPlane.imageUrlLarge : newPlane.imageUrlSmall), new OkHttpWrapper.HttpCallback() {
-                    @Override
-                    public void onFailure(Response response, Throwable throwable) {
-                    }
-
-                    @Override
-                    public void onSuccess(Object data) {
-                        Pair<Drawable, Integer> dataPair = (Pair<Drawable, Integer>) data;
-                        mPlaneImage.setImageDrawable(dataPair.first);
-                        oldPlane.setPlaneImage(dataPair);
-
-                        // set status bar color to the average img color
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            Window window = getWindow();
-                            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                            window.setStatusBarColor(dataPair.second);
-                        }
-                    }
-
-                    @Override
-                    public void onFinished() {
-                    }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-
-*//*            // remove polyline if exists
-            if (mCurrentDrawnPolyline != null) mCurrentDrawnPolyline.remove();
-            PolylineOptions line = new PolylineOptions().width(10).color(R.color.visibility_circle_color);
-            JsonArray trailArray = oData.getAsJsonArray(Constants.KEY_PLANE_MAP_TRAIL);
-            for (int i = 0; i < trailArray.size(); i += 5) { // ignore +3,4...
-                line.add(new LatLng(trailArray.get(i).getAsDouble(), trailArray.get(i + 1).getAsDouble()));
-            }
-            mCurrentDrawnPolyline = mMap.addPolyline(line);*//*
-
-        }
-
-        @Override
-        public void onFinished() {
-        }
-    };*/
 
 }
