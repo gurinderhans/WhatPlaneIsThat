@@ -11,6 +11,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.util.Pair;
@@ -25,6 +26,10 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.android.volley.Response.ErrorListener;
+import com.android.volley.Response.Listener;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
@@ -43,7 +48,11 @@ import com.google.gson.JsonObject;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.squareup.okhttp.Response;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -148,8 +157,19 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         int pixels = (int) (230 * scale + 0.5f);
         mPlaneImage.setTranslationY(pixels);
 
-//        Log.i(TAG, "res: " + Tools.jsonElToLong(null));
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setUpMapIfNeeded();
+
+        // fech data
+        mHandler.postDelayed(fetchData, 0);
+
+        // register different types of listeners
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000l, 0f, this);
+        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_GAME);
     }
 
     @Override
@@ -165,31 +185,42 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     Runnable fetchData = new Runnable() {
         @Override
         public void run() {
-            // fetch data of the calculated search bounds
+
             LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
             LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
-            mOkHttpWrapper.getJson(Constants.BASE_URL + String.format(
+            String reqUrl = Constants.BASE_URL + String.format(
                     Constants.OPTIONS_FORMAT,
                     north_west.latitude + "",
                     south_east.latitude + "",
                     north_west.longitude + "",
-                    south_east.longitude + ""), onFetchedAllPlanes);
+                    south_east.longitude + "");
+
+            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, new Listener<JSONObject>() {
+                @Override
+                public void onResponse(JSONObject response) {
+                    Log.i(TAG, "response: " + response);
+                    Log.i(TAG, "onMainThread: " + (Looper.myLooper() == Looper.getMainLooper()));
+
+                    Iterator<String> dataIterator = response.keys();
+                    while (dataIterator.hasNext()) {
+                        String key = dataIterator.next();
+                        try {
+                            // it's plane data if we can convert to a JSONArray
+                            response.getJSONArray(key);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }, new ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                }
+            });
+
+            PlaneApplication.getInstance().getRequestQueue().add(request);
         }
     };
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        setUpMapIfNeeded();
-
-        // fech data
-        mHandler.postDelayed(fetchData, 0);
-
-        // register different types of listeners
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000l, 0f, this);
-        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_GAME);
-
-    }
 
     @Override
     protected void onPause() {
@@ -407,6 +438,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     public void onPanelAnchored(View view) {
         collapsedToAnchored(100l);
         setAnchoredPanelData();
+
     }
 
     @Override
@@ -530,7 +562,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     //
 
 
-    OkHttpWrapper.HttpCallback onFetchedAllPlanes = new OkHttpWrapper.HttpCallback() {
+    /*OkHttpWrapper.HttpCallback onFetchedAllPlanes = new OkHttpWrapper.HttpCallback() {
         @Override
         public void onFailure(Response response, Throwable throwable) {
         }
@@ -665,20 +697,20 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             }
 
 
-/*            // remove polyline if exists
+*//*            // remove polyline if exists
             if (mCurrentDrawnPolyline != null) mCurrentDrawnPolyline.remove();
             PolylineOptions line = new PolylineOptions().width(10).color(R.color.visibility_circle_color);
             JsonArray trailArray = oData.getAsJsonArray(Constants.KEY_PLANE_MAP_TRAIL);
             for (int i = 0; i < trailArray.size(); i += 5) { // ignore +3,4...
                 line.add(new LatLng(trailArray.get(i).getAsDouble(), trailArray.get(i + 1).getAsDouble()));
             }
-            mCurrentDrawnPolyline = mMap.addPolyline(line);*/
+            mCurrentDrawnPolyline = mMap.addPolyline(line);*//*
 
         }
 
         @Override
         public void onFinished() {
         }
-    };
+    };*/
 
 }

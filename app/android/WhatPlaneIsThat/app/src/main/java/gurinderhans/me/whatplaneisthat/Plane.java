@@ -18,7 +18,7 @@ import java.util.Map;
  * Created by ghans on 6/15/15.
  */
 public class Plane {
-
+    protected static final String TAG = Plane.class.getSimpleName();
 
     // plane's unique identifier (used for fetching plane data from web and searching for plane in mem)
     final String keyIdentifier;
@@ -241,7 +241,6 @@ public class Plane {
             if (markersList.get(i).first.keyIdentifier.equals(name))
                 return i;
         }
-
         return -1;
     }
 
@@ -257,7 +256,6 @@ public class Plane {
             if (markersList.get(i).second.equals(planeMarker))
                 return i;
         }
-
         return -1;
     }
 }
