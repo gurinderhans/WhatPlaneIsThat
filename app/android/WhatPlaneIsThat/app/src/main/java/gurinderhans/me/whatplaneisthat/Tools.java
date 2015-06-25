@@ -11,6 +11,7 @@ import android.util.Pair;
 import com.google.android.gms.maps.model.Marker;
 import com.larvalabs.svgandroid.SVGBuilder;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -75,6 +76,14 @@ public class Tools {
     public static String getJsonString(JSONObject jsonObject, String key) {
         try {
             return jsonObject.getString(key);
+        } catch (JSONException je) {
+            return "";
+        }
+    }
+
+    public static String getJsonStringFromArr(JSONArray array, int index) {
+        try {
+            return array.getString(index);
         } catch (JSONException je) {
             return "";
         }

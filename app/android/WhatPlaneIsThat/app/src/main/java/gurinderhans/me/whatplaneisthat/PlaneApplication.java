@@ -3,6 +3,7 @@ package gurinderhans.me.whatplaneisthat;
 import android.app.Application;
 
 import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.Volley;
 
 /**
@@ -14,11 +15,15 @@ public class PlaneApplication extends Application {
 
     private RequestQueue mRequestQueue;
 
+    private ImageLoader mImageLoader;
+
     @Override
     public void onCreate() {
         super.onCreate();
 
         mRequestQueue = Volley.newRequestQueue(this);
+
+        mImageLoader = new ImageLoader(mRequestQueue, new BitmapLruCache());
 
         sInstance = this;
     }
@@ -29,5 +34,9 @@ public class PlaneApplication extends Application {
 
     public RequestQueue getRequestQueue() {
         return mRequestQueue;
+    }
+
+    public ImageLoader getImageLoader() {
+        return mImageLoader;
     }
 }

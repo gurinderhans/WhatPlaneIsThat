@@ -2,14 +2,18 @@ package gurinderhans.me.whatplaneisthat.Models;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Created by ghans on 6/24/15.
  */
 public class Destination {
 
     public final String toShort, fromShort;
-    final String toFull, fromFull;
-    final LatLng destTo, destFrom;
+    public final String toFull, fromFull;
+    public final LatLng destTo, destFrom;
+    private final long departureTime, arrivalTime;
 
     private Destination(Builder destBuilder) {
         this.toShort = destBuilder.toShort;
@@ -18,38 +22,66 @@ public class Destination {
         this.toFull = destBuilder.toFull;
         this.fromFull = destBuilder.fromFull;
 
+        this.departureTime = destBuilder.departureTime;
+        this.arrivalTime = destBuilder.arrivalTime;
+
         this.destTo = destBuilder.destTo;
         this.destFrom = destBuilder.destFrom;
     }
 
-    public static class Builder {
-        private String fromShort = "";
-        private String toShort = "";
+    public String getArrivalTime() {
+        if (arrivalTime != 0l)
+            return new SimpleDateFormat("h:mma").format(new Date(arrivalTime * 1000l)).toLowerCase();
+        return "N/a";
+    }
 
-        private String fromFull = "";
-        private String toFull = "";
+    public String getDepartureTime() {
+        if (departureTime != 0l)
+            return new SimpleDateFormat("h:mma").format(new Date(arrivalTime * 1000l)).toLowerCase();
+        return "N/a";
+    }
+
+    public static class Builder {
+        private String fromShort;
+        private String toShort;
+
+        private String fromFull;
+        private String toFull;
+
+        private long departureTime;
+        private long arrivalTime;
 
         private LatLng destTo;
         private LatLng destFrom;
 
 
         public Builder toShortName(String name) {
-            this.toShort = name;
+            this.toShort = !name.isEmpty() ? name : "N/a";
             return this;
         }
 
         public Builder fromShortName(String name) {
-            this.fromShort = name;
+            this.fromShort = !name.isEmpty() ? name : "N/a";
             return this;
         }
 
         public Builder toFullName(String name) {
-            this.toFull = name;
+            this.toFull = !name.isEmpty() ? name : "N/a";
             return this;
         }
 
         public Builder fromFullName(String name) {
-            this.fromFull = name;
+            this.fromFull = !name.isEmpty() ? name : "N/a";
+            return this;
+        }
+
+        public Builder departureTime(long time) {
+            this.departureTime = time;
+            return this;
+        }
+
+        public Builder arrivalTime(long time) {
+            this.arrivalTime = time;
             return this;
         }
 

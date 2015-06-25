@@ -4,9 +4,6 @@ import android.graphics.drawable.Drawable;
 import android.util.Pair;
 
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-
-import java.util.List;
 
 /**
  * Created by ghans on 6/15/15.
@@ -45,6 +42,83 @@ public class Plane {
         this.destination = planeBuilder.dest;
     }
 
+    public LatLng getPlanePos() {
+        return planePos;
+    }
+
+
+    //
+    // setters & getters
+    //
+
+    public void setPlanePos(LatLng planePos) {
+        this.planePos = planePos;
+    }
+
+    public float getRotation() {
+        return rotation;
+    }
+
+    public void setRotation(float rotation) {
+        this.rotation = rotation;
+    }
+
+    public Destination getDestination() {
+        return destination;
+    }
+
+    public void setDestination(Destination destination) {
+        this.destination = destination;
+    }
+
+    public boolean isCached() {
+        return isCached;
+    }
+
+    public void setIsCached(boolean isCached) {
+        this.isCached = isCached;
+    }
+
+    public String getFullName() {
+        return !fullName.isEmpty() ? fullName : !shortName.isEmpty() ? shortName : "No CallSign";
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getAirlineName() {
+        return !airlineName.isEmpty() ? airlineName : "Unknown Airlines";
+    }
+
+    public void setAirlineName(String airlineName) {
+        this.airlineName = airlineName;
+    }
+
+    public String getSmallImageUrl() {
+        return smallImageUrl;
+    }
+
+    public void setSmallImageUrl(String url) {
+        this.smallImageUrl = url;
+    }
+
+    public String getLargeImageUrl() {
+        return largeImageUrl;
+    }
+
+    public void setLargeImageUrl(String url) {
+        this.largeImageUrl = url;
+    }
+
+    public Pair<Drawable, Integer> getPlaneImage() {
+        return planeImage;
+    }
+
+    public void setPlaneImage(Pair<Drawable, Integer> planeImage) {
+        this.planeImage = planeImage;
+    }
+
     public static class Builder {
         private String key = "", shortName = "";
         private LatLng planePos;
@@ -80,83 +154,5 @@ public class Plane {
             return new Plane(this);
         }
 
-    }
-
-
-    //
-    // setters & getters
-    //
-
-
-    public LatLng getPlanePos() {
-        return planePos;
-    }
-
-    public void setPlanePos(LatLng planePos) {
-        this.planePos = planePos;
-    }
-
-    public float getRotation() {
-        return rotation;
-    }
-
-    public void setRotation(float rotation) {
-        this.rotation = rotation;
-    }
-
-    public Destination getDestination() {
-        return destination;
-    }
-
-    public void setDestination(Destination destination) {
-        this.destination = destination;
-    }
-
-    public boolean isCached() {
-        return isCached;
-    }
-
-    public void setIsCached(boolean isCached) {
-        this.isCached = isCached;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setAirlineName(String airlineName) {
-        this.airlineName = airlineName;
-    }
-
-    public String getAirlineName() {
-        return airlineName;
-    }
-
-    public String getSmallImageUrl() {
-        return smallImageUrl;
-    }
-
-    public void setSmallImageUrl(String url) {
-        this.smallImageUrl = url;
-    }
-
-    public String getLargeImageUrl() {
-        return largeImageUrl;
-    }
-
-    public void setLargeImageUrl(String url) {
-        this.largeImageUrl = url;
-    }
-
-    public Pair<Drawable, Integer> getPlaneImage() {
-        return planeImage;
-    }
-
-    public void setPlaneImage(Pair<Drawable, Integer> planeImage) {
-        this.planeImage = planeImage;
     }
 }
