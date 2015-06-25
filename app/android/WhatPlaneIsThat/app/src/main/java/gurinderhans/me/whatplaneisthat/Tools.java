@@ -6,36 +6,26 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Picture;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.PictureDrawable;
+import android.util.Pair;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.google.android.gms.maps.model.Marker;
 import com.larvalabs.svgandroid.SVGBuilder;
-import com.squareup.okhttp.ResponseBody;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.List;
+
+import gurinderhans.me.whatplaneisthat.Models.Plane;
 
 /**
  * Created by ghans on 6/15/15.
  */
 public class Tools {
 
-    static final Gson gson = new Gson();
-
     private Tools() {
         //
-    }
-
-    public static JsonObject stringToJsonObject(ResponseBody data) {
-
-        try {
-            JsonElement json = gson.fromJson(data.string(), JsonElement.class);
-            return json.getAsJsonObject();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return new JsonObject();
     }
 
     public static Bitmap getSVGBitmap(Context c, int rId, int width, int height) {
@@ -77,18 +67,56 @@ public class Tools {
         return Color.rgb(red, green, blue);
     }
 
-    // json parsing helper functions
-    public static String jsonElToString(JsonElement el) {
-        return el != null && !el.getAsString().isEmpty() ? el.getAsString() : null;
-    }
 
-    public static Long jsonElToLong(JsonElement el) {
+    /**
+     * @param jsonObject - json object containing data
+     * @param key        - key for the value
+     * @return
+     */
+    public static String getJsonString(JSONObject jsonObject, String key) {
         try {
-            return el.getAsLong();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            return jsonObject.getString(key);
+        } catch (JSONException je) {
+            return "";
         }
     }
 
+    public static String getJsonStringFromArr(JSONArray array, int index) {
+        try {
+            return array.getString(index);
+        } catch (JSONException je) {
+            return "";
+        }
+    }
+
+
+    /**
+     * Checks if given plane with key `name` is contained in `markersList`
+     *
+     * @param markersList - list of all markers on the map
+     * @param name        - plane name
+     * @return - index of the plane in the list, -1 if not found
+     */
+    public static int getPlaneMarkerIndex(List<Pair<Plane, Marker>> markersList, String name) {
+        for (int i = 0; i < markersList.size(); i++) {
+            if (markersList.get(i).first.keyIdentifier.equals(name))
+                return i;
+        }
+        return -1;
+    }
+
+    /**
+     * Checks if given plane name is in mPlaneMarkers
+     *
+     * @param markersList - list of all markers
+     * @param planeMarker - plane marker
+     * @return - index of the plane in the list, -1 if not found
+     */
+    public static int getPlaneMarkerIndex(List<Pair<Plane, Marker>> markersList, Marker planeMarker) {
+        for (int i = 0; i < markersList.size(); i++) {
+            if (markersList.get(i).second.equals(planeMarker))
+                return i;
+        }
+        return -1;
+    }
 }

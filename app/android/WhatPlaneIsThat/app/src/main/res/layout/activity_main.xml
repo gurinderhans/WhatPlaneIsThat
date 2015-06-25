@@ -43,7 +43,7 @@
             android:layout_height="230dp"
             android:layout_alignParentBottom="true"
             android:scaleType="centerCrop"
-            android:src="@drawable/plane" />
+            android:src="@drawable/transparent" />
 
     </RelativeLayout>
 
