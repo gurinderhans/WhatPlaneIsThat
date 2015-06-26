@@ -23,10 +23,9 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.android.volley.Response.Listener;
+import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
-import com.android.volley.toolbox.ImageLoader.ImageListener;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -98,213 +97,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     int blueColor = Color.rgb(89, 199, 250);
 
-
-    Runnable fetchData = new Runnable() {
-        @Override
-        public void run() {
-            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
-            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
-            String reqUrl = Constants.BASE_URL + String.format(
-                    Constants.OPTIONS_FORMAT,
-                    north_west.latitude + "",
-                    south_east.latitude + "",
-                    north_west.longitude + "",
-                    south_east.longitude + "");
-
-            // TODO: add error listener
-            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
-            PlaneApplication.getInstance().getRequestQueue().add(request);
-        }
-    };
-
-    Listener<JSONObject> onFetchedPlaneInfo = new Listener<JSONObject>() {
-        @Override
-        public void onResponse(JSONObject response) {
-
-            // reset
-            for (Pair<Plane, Marker> markerPair : mPlaneMarkers)
-                markerPair.second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
-            mPlaneImage.setImageResource(R.drawable.transparent);
-            if (mCurrentDrawnPolyline != null)
-                mCurrentDrawnPolyline.remove();
-
-
-            /* update plane object */
-
-            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setFullName(Tools.getJsonString(response, Constants.KEY_AIRCRAFT_NAME));
-            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setAirlineName(Tools.getJsonString(response, Constants.KEY_AIRLINE_NAME));
-
-            // build destination object
-            Destination.Builder destBuilder = new Destination.Builder()
-                    .fromShortName(mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getDestination().fromShort)
-                    .toShortName(mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getDestination().toShort);
-
-
-            if (!response.isNull(Constants.KEY_PLANE_FROM_SHORT))
-                destBuilder.fromShortName(Tools.getJsonString(response, Constants.KEY_PLANE_FROM_SHORT));
-
-            if (!response.isNull(Constants.KEY_PLANE_TO_SHORT))
-                destBuilder.toShortName(Tools.getJsonString(response, Constants.KEY_PLANE_TO_SHORT));
-
-            // set destination full name
-            destBuilder.fromFullName(Tools.getJsonString(response, Constants.KEY_PLANE_FROM))
-                    .toFullName(Tools.getJsonString(response, Constants.KEY_PLANE_TO));
-
-            // destination arrival and departure times
-            if (!response.isNull(Constants.KEY_PLANE_DEPARTURE_TIME)) {
-                try {
-                    destBuilder.departureTime(response.getLong(Constants.KEY_PLANE_DEPARTURE_TIME));
-                } catch (Exception e) {
-                }
-            }
-
-            if (!response.isNull(Constants.KEY_PLANE_ARRIVAL_TIME)) {
-                try {
-                    destBuilder.arrivalTime(response.getLong(Constants.KEY_PLANE_ARRIVAL_TIME));
-                } catch (JSONException e) {
-                }
-            }
-
-            // NOTE: catch blocks can be empty as the values for these variables have previously
-            // been set and not setting them now won't matter
-
-            if (!response.isNull(Constants.KEY_PLANE_POS_FROM)) {
-                try {
-                    JSONArray coordsArr = response.getJSONArray(Constants.KEY_PLANE_POS_FROM);
-                    if (coordsArr.length() == 2) {
-                        destBuilder.fromCoords(new LatLng(coordsArr.getDouble(0), coordsArr.getDouble(1)));
-                    }
-                } catch (JSONException e) {
-                }
-            }
-            if (!response.isNull(Constants.KEY_PLANE_POS_TO)) {
-                try {
-                    JSONArray coordsArr = response.getJSONArray(Constants.KEY_PLANE_POS_TO);
-                    if (coordsArr.length() == 2) {
-                        destBuilder.toCoords(new LatLng(coordsArr.getDouble(0), coordsArr.getDouble(1)));
-                    }
-                } catch (JSONException e) {
-                }
-            }
-
-            Destination planeDest = destBuilder.build();
-            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setDestination(planeDest);
-
-
-            String largeImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_LARGE_URL);
-            String smallImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_URL);
-
-            String imgUrl = !largeImageUrl.isEmpty() ? largeImageUrl : smallImageUrl;
-
-            // fetch new image
-            ImageLoader imgLoader = PlaneApplication.getInstance().getImageLoader();
-            imgLoader.get(imgUrl, new ImageListener() {
-                @Override
-                public void onResponse(ImageLoader.ImageContainer response, boolean isImmediate) {
-                    Bitmap bmp = response.getBitmap();
-                    if (bmp != null) {
-                        // TODO: fade in animation
-                        mPlaneImage.setImageBitmap(bmp);
-                        mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setPlaneImage(Pair.create(bmp, Tools.getBitmapColor(bmp)));
-                    }
-                }
-
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    mPlaneImage.setImageResource(R.drawable.transparent);
-                }
-            });
-
-            // set marker icon to SELECTED
-            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
-
-            // draw new polyline
-            try {
-                PolylineOptions line = new PolylineOptions().width(10).color(R.color.visibility_circle_color);
-                JSONArray trailArr = response.getJSONArray(Constants.KEY_PLANE_MAP_TRAIL);
-                for (int i = 0; i < trailArr.length(); i += 5) {
-                    line.add(new LatLng(trailArr.getDouble(i), trailArr.getDouble(i + 1)));
-                }
-                mCurrentDrawnPolyline = mMap.addPolyline(line);
-            } catch (JSONException e) {
-            }
-
-            updateSlidingPane();
-        }
-    };
-
-    Listener<JSONObject> onFetchedAllPlanes = new Listener<JSONObject>() {
-        @Override
-        public void onResponse(JSONObject response) {
-
-            Iterator<String> jsonIterator = response.keys();
-
-            while (jsonIterator.hasNext()) {
-                String key = jsonIterator.next();
-
-                try { // it's plane data if we can convert to a JSONArray
-
-                    JSONArray planeDataArr = response.getJSONArray(key);
-
-                    Plane.Builder planeBuilder = new Plane.Builder().key(key);
-
-                    planeBuilder.shortName(Tools.getJsonStringFromArr(planeDataArr, 16));
-
-                    if (!planeDataArr.isNull(1) && !planeDataArr.isNull(2))
-                        planeBuilder.position(new LatLng(planeDataArr.getDouble(1), planeDataArr.getDouble(2)));
-                    if (!planeDataArr.isNull(3))
-                        planeBuilder.rotation((float) planeDataArr.getDouble(3));
-
-                    // build plane destination object
-                    Destination.Builder destBuilder = new Destination.Builder();
-                    destBuilder.fromShortName(Tools.getJsonStringFromArr(planeDataArr, 11))
-                            .toShortName(Tools.getJsonStringFromArr(planeDataArr, 12));
-
-                    // build destination
-                    planeBuilder.shortDestinationNames(destBuilder.build());
-
-                    Plane tmpPlane = planeBuilder.build();
-
-                    int markerIndex = Tools.getPlaneMarkerIndex(mPlaneMarkers, key);
-
-                    // add plane to markers list if not
-                    if (markerIndex == -1) {
-                        Marker planeMarker = mMap.addMarker(new MarkerOptions().position(tmpPlane.getPlanePos())
-                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
-                                .rotation(tmpPlane.getRotation())
-                                .flat(true));
-                        mPlaneMarkers.add(Pair.create(tmpPlane, planeMarker));
-                    } else {
-
-                        // directly update plane and marker objects
-
-                        Log.i(TAG, "updated plane: " + tmpPlane.shortName);
-
-                        mPlaneMarkers.get(markerIndex).first.setPlanePos(tmpPlane.getPlanePos());
-                        mPlaneMarkers.get(markerIndex).first.setRotation(tmpPlane.getRotation());
-
-                        // only set destination if it's null, otherwise other destination
-                        // variables are set to empty, ex. `toFullCity` as this information
-                        // isn't avaialble at this time
-                        if (mPlaneMarkers.get(markerIndex).first.getDestination() == null)
-                            mPlaneMarkers.get(markerIndex).first.setDestination(tmpPlane.getDestination());
-
-                        mPlaneMarkers.get(markerIndex).second.setPosition(tmpPlane.getPlanePos());
-                        mPlaneMarkers.get(markerIndex).second.setRotation(tmpPlane.getRotation());
-                    }
-
-                } catch (JSONException e) {
-                    // this can be ignored because only time this exception occurs is when we try
-                    // to convert a json node to an node array but it's not. That is used as a
-                    // detection to check if the node value contains plane data or not
-                }
-
-            }
-
-            // fetch again after 10 seconds
-            mHandler.postDelayed(fetchData, 10000);
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -792,6 +584,222 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         return data;
     }
+
+
+    //
+    // MARK: volley response listeners
+    //
+
+
+    Response.Listener<JSONObject> onFetchedPlaneInfo = new Response.Listener<JSONObject>() {
+        @Override
+        public void onResponse(JSONObject response) {
+
+            // reset
+            for (Pair<Plane, Marker> markerPair : mPlaneMarkers)
+                markerPair.second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
+            mPlaneImage.setImageResource(R.drawable.transparent);
+            if (mCurrentDrawnPolyline != null)
+                mCurrentDrawnPolyline.remove();
+
+
+            /* update plane object */
+
+            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setFullName(Tools.getJsonString(response, Constants.KEY_AIRCRAFT_NAME));
+            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setAirlineName(Tools.getJsonString(response, Constants.KEY_AIRLINE_NAME));
+
+            // build destination object
+            Destination.Builder destBuilder = new Destination.Builder()
+                    .fromShortName(mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getDestination().fromShort)
+                    .toShortName(mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getDestination().toShort);
+
+
+            if (!response.isNull(Constants.KEY_PLANE_FROM_SHORT))
+                destBuilder.fromShortName(Tools.getJsonString(response, Constants.KEY_PLANE_FROM_SHORT));
+
+            if (!response.isNull(Constants.KEY_PLANE_TO_SHORT))
+                destBuilder.toShortName(Tools.getJsonString(response, Constants.KEY_PLANE_TO_SHORT));
+
+            // set destination full name
+            destBuilder.fromFullName(Tools.getJsonString(response, Constants.KEY_PLANE_FROM))
+                    .toFullName(Tools.getJsonString(response, Constants.KEY_PLANE_TO));
+
+            // destination arrival and departure times
+            if (!response.isNull(Constants.KEY_PLANE_DEPARTURE_TIME)) {
+                try {
+                    destBuilder.departureTime(response.getLong(Constants.KEY_PLANE_DEPARTURE_TIME));
+                } catch (Exception e) {
+                }
+            }
+
+            if (!response.isNull(Constants.KEY_PLANE_ARRIVAL_TIME)) {
+                try {
+                    destBuilder.arrivalTime(response.getLong(Constants.KEY_PLANE_ARRIVAL_TIME));
+                } catch (JSONException e) {
+                }
+            }
+
+            // NOTE: catch blocks can be empty as the values for these variables have previously
+            // been set and not setting them now won't matter
+
+            if (!response.isNull(Constants.KEY_PLANE_POS_FROM)) {
+                try {
+                    JSONArray coordsArr = response.getJSONArray(Constants.KEY_PLANE_POS_FROM);
+                    if (coordsArr.length() == 2) {
+                        destBuilder.fromCoords(new LatLng(coordsArr.getDouble(0), coordsArr.getDouble(1)));
+                    }
+                } catch (JSONException e) {
+                }
+            }
+            if (!response.isNull(Constants.KEY_PLANE_POS_TO)) {
+                try {
+                    JSONArray coordsArr = response.getJSONArray(Constants.KEY_PLANE_POS_TO);
+                    if (coordsArr.length() == 2) {
+                        destBuilder.toCoords(new LatLng(coordsArr.getDouble(0), coordsArr.getDouble(1)));
+                    }
+                } catch (JSONException e) {
+                }
+            }
+
+            Destination planeDest = destBuilder.build();
+            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setDestination(planeDest);
+
+
+            String largeImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_LARGE_URL);
+            String smallImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_URL);
+
+            String imgUrl = !largeImageUrl.isEmpty() ? largeImageUrl : smallImageUrl;
+
+            // fetch new image
+            ImageLoader imgLoader = PlaneApplication.getInstance().getImageLoader();
+            imgLoader.get(imgUrl, new ImageLoader.ImageListener() {
+                @Override
+                public void onResponse(ImageLoader.ImageContainer response, boolean isImmediate) {
+                    Bitmap bmp = response.getBitmap();
+                    if (bmp != null) {
+                        // TODO: fade in animation
+                        mPlaneImage.setImageBitmap(bmp);
+                        mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setPlaneImage(Pair.create(bmp, Tools.getBitmapColor(bmp)));
+                    }
+                }
+
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    mPlaneImage.setImageResource(R.drawable.transparent);
+                }
+            });
+
+            // set marker icon to SELECTED
+            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
+
+            // draw new polyline
+            try {
+                PolylineOptions line = new PolylineOptions().width(10).color(R.color.visibility_circle_color);
+                JSONArray trailArr = response.getJSONArray(Constants.KEY_PLANE_MAP_TRAIL);
+                for (int i = 0; i < trailArr.length(); i += 5) {
+                    line.add(new LatLng(trailArr.getDouble(i), trailArr.getDouble(i + 1)));
+                }
+                mCurrentDrawnPolyline = mMap.addPolyline(line);
+            } catch (JSONException e) {
+            }
+
+            updateSlidingPane();
+        }
+    };
+
+    Response.Listener<JSONObject> onFetchedAllPlanes = new Response.Listener<JSONObject>() {
+        @Override
+        public void onResponse(JSONObject response) {
+
+            Iterator<String> jsonIterator = response.keys();
+
+            while (jsonIterator.hasNext()) {
+                String key = jsonIterator.next();
+
+                try { // it's plane data if we can convert to a JSONArray
+
+                    JSONArray planeDataArr = response.getJSONArray(key);
+
+                    Plane.Builder planeBuilder = new Plane.Builder().key(key);
+
+                    planeBuilder.shortName(Tools.getJsonStringFromArr(planeDataArr, 16));
+
+                    if (!planeDataArr.isNull(1) && !planeDataArr.isNull(2))
+                        planeBuilder.position(new LatLng(planeDataArr.getDouble(1), planeDataArr.getDouble(2)));
+                    if (!planeDataArr.isNull(3))
+                        planeBuilder.rotation((float) planeDataArr.getDouble(3));
+
+                    // build plane destination object
+                    Destination.Builder destBuilder = new Destination.Builder();
+                    destBuilder.fromShortName(Tools.getJsonStringFromArr(planeDataArr, 11))
+                            .toShortName(Tools.getJsonStringFromArr(planeDataArr, 12));
+
+                    // build destination
+                    planeBuilder.shortDestinationNames(destBuilder.build());
+
+                    Plane tmpPlane = planeBuilder.build();
+
+                    int markerIndex = Tools.getPlaneMarkerIndex(mPlaneMarkers, key);
+
+                    // add plane to markers list if not
+                    if (markerIndex == -1) {
+                        Marker planeMarker = mMap.addMarker(new MarkerOptions().position(tmpPlane.getPlanePos())
+                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
+                                .rotation(tmpPlane.getRotation())
+                                .flat(true));
+                        mPlaneMarkers.add(Pair.create(tmpPlane, planeMarker));
+                    } else {
+
+                        /* directly update plane and marker objects */
+
+                        mPlaneMarkers.get(markerIndex).first.setPlanePos(tmpPlane.getPlanePos());
+                        mPlaneMarkers.get(markerIndex).first.setRotation(tmpPlane.getRotation());
+
+                        // only set destination if it's null, otherwise other destination
+                        // variables are set to empty, ex. `toFullCity` as this information
+                        // isn't available at this time
+                        if (mPlaneMarkers.get(markerIndex).first.getDestination() == null)
+                            mPlaneMarkers.get(markerIndex).first.setDestination(tmpPlane.getDestination());
+
+                        mPlaneMarkers.get(markerIndex).second.setPosition(tmpPlane.getPlanePos());
+                        mPlaneMarkers.get(markerIndex).second.setRotation(tmpPlane.getRotation());
+                    }
+
+                } catch (JSONException e) {
+                    // this can be ignored because only time this exception occurs is when we try
+                    // to convert a json node to an node array but it's not. That is used as a
+                    // detection to check if the node value contains plane data or not
+                }
+
+            }
+
+            // fetch again after 10 seconds
+            mHandler.postDelayed(fetchData, 10000);
+        }
+    };
+
+
+    //
+    // MARK: runnables
+    //
+
+    Runnable fetchData = new Runnable() {
+        @Override
+        public void run() {
+            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
+            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
+            String reqUrl = Constants.BASE_URL + String.format(
+                    Constants.OPTIONS_FORMAT,
+                    north_west.latitude + "",
+                    south_east.latitude + "",
+                    north_west.longitude + "",
+                    south_east.longitude + "");
+
+            // TODO: add error listener
+            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
+            PlaneApplication.getInstance().getRequestQueue().add(request);
+        }
+    };
 
 
 }
