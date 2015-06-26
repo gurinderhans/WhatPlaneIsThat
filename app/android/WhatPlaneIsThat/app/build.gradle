@@ -19,6 +19,11 @@ android {
     }
 }
 
+repositories {
+    maven { url "https://jitpack.io" }
+}
+
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.2.0'
@@ -26,4 +31,5 @@ dependencies {
     compile 'com.github.japgolly.android:svg-android:2.0.6'
     compile 'com.sothree.slidinguppanel:library:3.0.0'
     compile 'com.mcxiaoke.volley:library:1.0.+'
+    compile 'com.github.PhilJay:MPAndroidChart:v2.1.0'
 }

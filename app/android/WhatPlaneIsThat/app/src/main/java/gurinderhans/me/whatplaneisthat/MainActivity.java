@@ -1,5 +1,7 @@
 package gurinderhans.me.whatplaneisthat;
 
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -22,8 +24,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.volley.Response.Listener;
+import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.ImageLoader.ImageListener;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
@@ -87,6 +96,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     View mAnchoredView;
     View mExpandedView;
 
+    int blueColor = Color.rgb(89, 199, 250);
+
 
     Runnable fetchData = new Runnable() {
         @Override
@@ -109,6 +120,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     Listener<JSONObject> onFetchedPlaneInfo = new Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
+
+            // reset
+            for (Pair<Plane, Marker> markerPair : mPlaneMarkers)
+                markerPair.second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
+            mPlaneImage.setImageResource(R.drawable.transparent);
+            if (mCurrentDrawnPolyline != null)
+                mCurrentDrawnPolyline.remove();
+
 
             /* update plane object */
 
@@ -146,7 +165,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                 }
             }
 
-
             // NOTE: catch blocks can be empty as the values for these variables have previously
             // been set and not setting them now won't matter
 
@@ -172,18 +190,33 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             Destination planeDest = destBuilder.build();
             mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setDestination(planeDest);
 
-            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setLargeImageUrl(Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_LARGE_URL));
-            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setSmallImageUrl(Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_URL));
 
-            String imgUrl = !mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getLargeImageUrl().isEmpty()
-                    ? mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getLargeImageUrl()
-                    : mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getSmallImageUrl();
+            String largeImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_LARGE_URL);
+            String smallImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_URL);
 
+            String imgUrl = !largeImageUrl.isEmpty() ? largeImageUrl : smallImageUrl;
+
+            // fetch new image
             ImageLoader imgLoader = PlaneApplication.getInstance().getImageLoader();
-            imgLoader.get(imgUrl, ImageLoader.getImageListener(mPlaneImage, R.drawable.transparent, R.drawable.transparent));
+            imgLoader.get(imgUrl, new ImageListener() {
+                @Override
+                public void onResponse(ImageLoader.ImageContainer response, boolean isImmediate) {
+                    Bitmap bmp = response.getBitmap();
+                    if (bmp != null) {
+                        // TODO: fade in animation
+                        mPlaneImage.setImageBitmap(bmp);
+                        mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setPlaneImage(Pair.create(bmp, Tools.getBitmapColor(bmp)));
+                    }
+                }
 
-            if (mCurrentDrawnPolyline != null)
-                mCurrentDrawnPolyline.remove();
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    mPlaneImage.setImageResource(R.drawable.transparent);
+                }
+            });
+
+            // set marker icon to SELECTED
+            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
 
             // draw new polyline
             try {
@@ -192,16 +225,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                 for (int i = 0; i < trailArr.length(); i += 5) {
                     line.add(new LatLng(trailArr.getDouble(i), trailArr.getDouble(i + 1)));
                 }
-
                 mCurrentDrawnPolyline = mMap.addPolyline(line);
             } catch (JSONException e) {
             }
 
-            // this plane is now cached
-            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setIsCached(true);
-
             updateSlidingPane();
-
         }
     };
 
@@ -322,7 +350,15 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         int pixels = (int) (230 * scale + 0.5f);
         mPlaneImage.setTranslationY(pixels);
 
+
+        LineData data = getData(36, 100);
+
+        chart = (LineChart) findViewById(R.id.chart1);
+        setupChart(chart, data, blueColor);
+
     }
+
+    LineChart chart;
 
     @Override
     protected void onResume() {
@@ -440,27 +476,18 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mCurrentFocusedPlaneMarkerIndex = Tools.getPlaneMarkerIndex(mPlaneMarkers, marker);
 
         if (mCurrentFocusedPlaneMarkerIndex != -1) {
-            // reset other marker icons
-            for (Pair<Plane, Marker> markerPair : mPlaneMarkers) {
-                markerPair.second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
-            }
-            marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
-            
+
             Plane oSelectedPlane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
 
-            if (!oSelectedPlane.isCached()) {
-                // call to network to fetch data
-                String reqUrl = String.format(Constants.PLANE_DATA_URL,
-                        oSelectedPlane.keyIdentifier);
+            // call to network to fetch data
+            String reqUrl = String.format(Constants.PLANE_DATA_URL,
+                    oSelectedPlane.keyIdentifier);
 
-                // TODO: add error listener
-                JsonObjectRequest request = new JsonObjectRequest(reqUrl, null,
-                        onFetchedPlaneInfo, null);
-                PlaneApplication.getInstance().getRequestQueue().add(request);
+            // TODO: add error listener
+            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null,
+                    onFetchedPlaneInfo, null);
+            PlaneApplication.getInstance().getRequestQueue().add(request);
 
-            } else {
-                updateSlidingPane();
-            }
         }
 
         return true;
@@ -659,12 +686,100 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         ((TextView) findViewById(R.id.anchoredPanelAirlineName)).setText(plane.getAirlineName());
 
         // plane from -> to airports
-        ((TextView) findViewById(R.id.anchoredPanelDestFrom)).setText(plane.getDestination().fromShort);
-        ((TextView) findViewById(R.id.anchoredPanelDestTo)).setText(plane.getDestination().toShort);
+//        ((TextView) findViewById(R.id.anchoredPanelDestFrom)).setText(plane.getDestination().fromShort);
+//        ((TextView) findViewById(R.id.anchoredPanelDestTo)).setText(plane.getDestination().toShort);
+
+        if (plane.getPlaneImage() != null && plane.getPlaneImage().first != null)
+            mPlaneImage.setImageBitmap(plane.getPlaneImage().first);
 
     }
 
     public void setExpandedPanelData() {
+    }
+
+
+    //
+    // MARK: line chart
+    //
+
+    private void setupChart(LineChart chart, LineData data, int color) {
+
+        // no description text
+        chart.setDescription("");
+        chart.setNoDataTextDescription("You need to provide data for the chart.");
+
+        // mChart.setDrawHorizontalGrid(false);
+        //
+        // enable / disable grid background
+        chart.setDrawGridBackground(false);
+//        chart.getRenderer().getGridPaint().setGridColor(Color.WHITE & 0x70FFFFFF);
+
+        // enable touch gestures
+        chart.setTouchEnabled(true);
+
+        // enable scaling and dragging
+        chart.setDragEnabled(true);
+        chart.setScaleEnabled(true);
+
+        // if disabled, scaling can be done on x- and y-axis separately
+        chart.setPinchZoom(false);
+
+        chart.setBackgroundColor(color);
+
+        // set custom chart offsets (automatic offset calculation is hereby disabled)
+        chart.setViewPortOffsets(10, 0, 10, 0);
+
+        // add data
+        chart.setData(data);
+
+        // get the legend (only possible after setting data)
+        Legend l = chart.getLegend();
+        l.setEnabled(false);
+
+        chart.getAxisLeft().setEnabled(false);
+        chart.getAxisRight().setEnabled(false);
+
+        chart.getXAxis().setEnabled(false);
+
+        // animate calls invalidate()...
+        chart.animateX(2500);
+    }
+
+    protected String[] mMonths = new String[]{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"};
+
+    private LineData getData(int count, float range) {
+
+        ArrayList<String> xVals = new ArrayList<String>();
+        for (int i = 0; i < count; i++) {
+            xVals.add(mMonths[i % 12]);
+        }
+
+        ArrayList<Entry> yVals = new ArrayList<Entry>();
+
+        for (int i = 0; i < count; i++) {
+            float val = (float) (Math.random() * range) + 3;
+            yVals.add(new Entry(val, i));
+        }
+
+        // create a dataset and give it a type
+        LineDataSet set1 = new LineDataSet(yVals, "DataSet 1");
+        // set1.setFillAlpha(110);
+        // set1.setFillColor(Color.RED);
+
+        set1.setLineWidth(1.75f);
+        set1.setCircleSize(3f);
+        set1.setColor(Color.WHITE);
+        set1.setCircleColor(Color.WHITE);
+        set1.setHighLightColor(Color.WHITE);
+        set1.setDrawValues(false);
+
+        ArrayList<LineDataSet> dataSets = new ArrayList<LineDataSet>();
+        dataSets.add(set1); // add the datasets
+
+        // create a data object with the datasets
+        LineData data = new LineData(xVals, dataSets);
+
+        return data;
     }
 
 

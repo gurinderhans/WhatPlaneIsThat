@@ -1,6 +1,7 @@
 package gurinderhans.me.whatplaneisthat.Models;
 
-import android.graphics.drawable.Drawable;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.util.Pair;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -26,11 +27,7 @@ public class Plane {
 
     private Destination destination;
 
-    private boolean isCached;
-
-    private String smallImageUrl, largeImageUrl;
-
-    private Pair<Drawable, Integer> planeImage;
+    private Pair<Bitmap, Integer> planeImage;
 
 
     private Plane(Builder planeBuilder) {
@@ -42,14 +39,14 @@ public class Plane {
         this.destination = planeBuilder.dest;
     }
 
-    public LatLng getPlanePos() {
-        return planePos;
-    }
-
 
     //
     // setters & getters
     //
+
+    public LatLng getPlanePos() {
+        return planePos;
+    }
 
     public void setPlanePos(LatLng planePos) {
         this.planePos = planePos;
@@ -71,14 +68,6 @@ public class Plane {
         this.destination = destination;
     }
 
-    public boolean isCached() {
-        return isCached;
-    }
-
-    public void setIsCached(boolean isCached) {
-        this.isCached = isCached;
-    }
-
     public String getFullName() {
         return !fullName.isEmpty() ? fullName : !shortName.isEmpty() ? shortName : "No CallSign";
     }
@@ -95,27 +84,11 @@ public class Plane {
         this.airlineName = airlineName;
     }
 
-    public String getSmallImageUrl() {
-        return smallImageUrl;
-    }
-
-    public void setSmallImageUrl(String url) {
-        this.smallImageUrl = url;
-    }
-
-    public String getLargeImageUrl() {
-        return largeImageUrl;
-    }
-
-    public void setLargeImageUrl(String url) {
-        this.largeImageUrl = url;
-    }
-
-    public Pair<Drawable, Integer> getPlaneImage() {
+    public Pair<Bitmap, Integer> getPlaneImage() {
         return planeImage;
     }
 
-    public void setPlaneImage(Pair<Drawable, Integer> planeImage) {
+    public void setPlaneImage(Pair<Bitmap, Integer> planeImage) {
         this.planeImage = planeImage;
     }
 
