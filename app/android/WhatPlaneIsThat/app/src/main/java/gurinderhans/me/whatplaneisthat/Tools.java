@@ -109,12 +109,12 @@ public class Tools {
      * Checks if given plane name is in mPlaneMarkers
      *
      * @param markersList - list of all markers
-     * @param planeMarker - plane marker
+     * @param markerId - plane marker id
      * @return - index of the plane in the list, -1 if not found
      */
-    public static int getPlaneMarkerIndex(List<Pair<Plane, Marker>> markersList, Marker planeMarker) {
+    public static int getPlaneMarkerIdIndex(List<Pair<Plane, Marker>> markersList, String markerId) {
         for (int i = 0; i < markersList.size(); i++) {
-            if (markersList.get(i).second.equals(planeMarker))
+            if (markersList.get(i).second.getId().equals(markerId))
                 return i;
         }
         return -1;

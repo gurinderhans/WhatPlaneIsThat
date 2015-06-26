@@ -57,12 +57,14 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/anchoredPanelFromCity"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Seattle"
                     android:textSize="20sp" />
 
                 <TextView
+                    android:id="@+id/anchoredPanelFromAirport"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Seattle Tacoma International Airport" />
@@ -76,21 +78,24 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/anchoredPanelToCity"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Frankfurt"
                     android:textSize="20sp" />
 
                 <TextView
+                    android:id="@+id/anchoredPanelToAirport"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Frankfurt Airport" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
+
     <com.github.mikephil.charting.charts.LineChart
         android:id="@+id/chart1"
-        android:layout_marginTop="20dp"
         android:layout_width="match_parent"
-        android:layout_height="130dp"/>
+        android:layout_height="130dp"
+        android:layout_marginTop="20dp" />
 </LinearLayout>

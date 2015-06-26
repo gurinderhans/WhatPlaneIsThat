@@ -11,7 +11,8 @@ import java.util.Date;
 public class Destination {
 
     public final String toShort, fromShort;
-    public final String toFull, fromFull;
+    public final String toFullCity, fromFullCity;
+    public final String toFullAirport, fromFullAirport;
     public final LatLng destTo, destFrom;
     private final long departureTime, arrivalTime;
 
@@ -19,8 +20,26 @@ public class Destination {
         this.toShort = destBuilder.toShort;
         this.fromShort = destBuilder.fromShort;
 
-        this.toFull = destBuilder.toFull;
-        this.fromFull = destBuilder.fromFull;
+
+        // split to get city and airport name
+
+        String[] toDestSplit = destBuilder.toFull.split(",");
+        if (toDestSplit.length == 2) {
+            this.toFullCity = toDestSplit[0].trim();
+            this.toFullAirport = toDestSplit[1].trim();
+        } else {
+            this.toFullCity = "N/a";
+            this.toFullAirport = "N/a";
+        }
+
+        String[] fromDestSplit = destBuilder.fromFull.split(",");
+        if (fromDestSplit.length == 2) {
+            this.fromFullCity = fromDestSplit[0].trim();
+            this.fromFullAirport = fromDestSplit[1].trim();
+        } else {
+            this.fromFullCity = "N/a";
+            this.fromFullAirport = "N/a";
+        }
 
         this.departureTime = destBuilder.departureTime;
         this.arrivalTime = destBuilder.arrivalTime;
@@ -30,9 +49,7 @@ public class Destination {
     }
 
     public String getArrivalTime() {
-        if (arrivalTime != 0l)
-            return new SimpleDateFormat("h:mma").format(new Date(arrivalTime * 1000l)).toLowerCase();
-        return "N/a";
+        return new SimpleDateFormat("h:mma").format(new Date(arrivalTime * 1000l)).toLowerCase();
     }
 
     public String getDepartureTime() {
@@ -42,11 +59,11 @@ public class Destination {
     }
 
     public static class Builder {
-        private String fromShort;
-        private String toShort;
+        private String fromShort = "";
+        private String toShort = "";
 
-        private String fromFull;
-        private String toFull;
+        private String fromFull = "";
+        private String toFull = "";
 
         private long departureTime;
         private long arrivalTime;
@@ -56,22 +73,22 @@ public class Destination {
 
 
         public Builder toShortName(String name) {
-            this.toShort = !name.isEmpty() ? name : "N/a";
+            this.toShort = name;
             return this;
         }
 
         public Builder fromShortName(String name) {
-            this.fromShort = !name.isEmpty() ? name : "N/a";
+            this.fromShort = name;
             return this;
         }
 
         public Builder toFullName(String name) {
-            this.toFull = !name.isEmpty() ? name : "N/a";
+            this.toFull = name;
             return this;
         }
 
         public Builder fromFullName(String name) {
-            this.fromFull = !name.isEmpty() ? name : "N/a";
+            this.fromFull = name;
             return this;
         }
 

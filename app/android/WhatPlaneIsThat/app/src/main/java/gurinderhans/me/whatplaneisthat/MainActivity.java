@@ -263,27 +263,34 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                     // build destination
                     planeBuilder.shortDestinationNames(destBuilder.build());
 
-                    Plane myPlane = planeBuilder.build();
+                    Plane tmpPlane = planeBuilder.build();
 
-                    int markerIndex = Tools.getPlaneMarkerIndex(mPlaneMarkers, myPlane.keyIdentifier);
+                    int markerIndex = Tools.getPlaneMarkerIndex(mPlaneMarkers, key);
 
                     // add plane to markers list if not
                     if (markerIndex == -1) {
-                        Marker myPlanMarker = mMap.addMarker(new MarkerOptions().position(myPlane.getPlanePos())
+                        Marker planeMarker = mMap.addMarker(new MarkerOptions().position(tmpPlane.getPlanePos())
                                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
-                                .rotation(myPlane.getRotation())
+                                .rotation(tmpPlane.getRotation())
                                 .flat(true));
-                        mPlaneMarkers.add(Pair.create(myPlane, myPlanMarker));
+                        mPlaneMarkers.add(Pair.create(tmpPlane, planeMarker));
                     } else {
 
                         // directly update plane and marker objects
 
-                        mPlaneMarkers.get(markerIndex).first.setPlanePos(myPlane.getPlanePos());
-                        mPlaneMarkers.get(markerIndex).first.setRotation(myPlane.getRotation());
-                        mPlaneMarkers.get(markerIndex).first.setDestination(myPlane.getDestination());
+                        Log.i(TAG, "updated plane: " + tmpPlane.shortName);
 
-                        mPlaneMarkers.get(markerIndex).second.setPosition(myPlane.getPlanePos());
-                        mPlaneMarkers.get(markerIndex).second.setRotation(myPlane.getRotation());
+                        mPlaneMarkers.get(markerIndex).first.setPlanePos(tmpPlane.getPlanePos());
+                        mPlaneMarkers.get(markerIndex).first.setRotation(tmpPlane.getRotation());
+
+                        // only set destination if it's null, otherwise other destination
+                        // variables are set to empty, ex. `toFullCity` as this information
+                        // isn't avaialble at this time
+                        if (mPlaneMarkers.get(markerIndex).first.getDestination() == null)
+                            mPlaneMarkers.get(markerIndex).first.setDestination(tmpPlane.getDestination());
+
+                        mPlaneMarkers.get(markerIndex).second.setPosition(tmpPlane.getPlanePos());
+                        mPlaneMarkers.get(markerIndex).second.setRotation(tmpPlane.getRotation());
                     }
 
                 } catch (JSONException e) {
@@ -473,7 +480,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public boolean onMarkerClick(Marker marker) {
 
-        mCurrentFocusedPlaneMarkerIndex = Tools.getPlaneMarkerIndex(mPlaneMarkers, marker);
+        Log.i(TAG, "id: " + marker.getId());
+
+        mCurrentFocusedPlaneMarkerIndex = Tools.getPlaneMarkerIdIndex(mPlaneMarkers, marker.getId());
 
         if (mCurrentFocusedPlaneMarkerIndex != -1) {
 
@@ -513,18 +522,20 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public void onPanelCollapsed(View view) {
         // bring back the panel short view
-        anchoredToCollapsed(100l);
+        openedToCollapsed(100l);
         setCollapsedPanelData();
     }
 
     @Override
     public void onPanelExpanded(View view) {
+        collapsedToOpened(100l);
+        setOpenedPanelData();
     }
 
     @Override
     public void onPanelAnchored(View view) {
-        collapsedToAnchored(100l);
-        setAnchoredPanelData();
+        collapsedToOpened(100l);
+        setOpenedPanelData();
     }
 
     @Override
@@ -536,7 +547,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     // MARK: panel view transitions
     //
 
-    private void anchoredToCollapsed(final long duration) {
+    private void openedToCollapsed(final long duration) {
 
         Animation animation = new AlphaAnimation(1, 0);
         animation.setInterpolator(new AccelerateInterpolator());
@@ -568,7 +579,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mAnchoredView.startAnimation(animation);
     }
 
-    private void collapsedToAnchored(final long duration) {
+    private void collapsedToOpened(final long duration) {
         Animation animation = new AlphaAnimation(1, 0);
         animation.setInterpolator(new AccelerateInterpolator());
         animation.setDuration(duration);
@@ -649,10 +660,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                 setCollapsedPanelData();
                 break;
             case ANCHORED:
-                setAnchoredPanelData();
+                setOpenedPanelData();
                 break;
             case EXPANDED:
-                setExpandedPanelData();
+                setOpenedPanelData();
                 break;
             default:
                 break;
@@ -676,7 +687,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     }
 
-    public void setAnchoredPanelData() {
+    public void setOpenedPanelData() {
         if (mCurrentFocusedPlaneMarkerIndex == -1) return;
 
         Plane plane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
@@ -686,21 +697,23 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         ((TextView) findViewById(R.id.anchoredPanelAirlineName)).setText(plane.getAirlineName());
 
         // plane from -> to airports
-//        ((TextView) findViewById(R.id.anchoredPanelDestFrom)).setText(plane.getDestination().fromShort);
-//        ((TextView) findViewById(R.id.anchoredPanelDestTo)).setText(plane.getDestination().toShort);
+        ((TextView) findViewById(R.id.anchoredPanelFromCity)).setText(plane.getDestination().fromFullCity);
+        ((TextView) findViewById(R.id.anchoredPanelToCity)).setText(plane.getDestination().toFullCity);
+
+        ((TextView) findViewById(R.id.anchoredPanelFromAirport)).setText(plane.getDestination().fromFullAirport);
+        ((TextView) findViewById(R.id.anchoredPanelToAirport)).setText(plane.getDestination().toFullAirport);
 
         if (plane.getPlaneImage() != null && plane.getPlaneImage().first != null)
             mPlaneImage.setImageBitmap(plane.getPlaneImage().first);
 
     }
 
-    public void setExpandedPanelData() {
-    }
-
 
     //
     // MARK: line chart
     //
+
+    protected String[] mMonths = new String[]{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
     private void setupChart(LineChart chart, LineData data, int color) {
 
@@ -745,16 +758,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         chart.animateX(2500);
     }
 
-    protected String[] mMonths = new String[]{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"};
-
     private LineData getData(int count, float range) {
 
-        ArrayList<String> xVals = new ArrayList<String>();
+        ArrayList<String> xVals = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             xVals.add(mMonths[i % 12]);
         }
 
-        ArrayList<Entry> yVals = new ArrayList<Entry>();
+        ArrayList<Entry> yVals = new ArrayList<>();
 
         for (int i = 0; i < count; i++) {
             float val = (float) (Math.random() * range) + 3;
@@ -763,8 +774,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         // create a dataset and give it a type
         LineDataSet set1 = new LineDataSet(yVals, "DataSet 1");
-        // set1.setFillAlpha(110);
-        // set1.setFillColor(Color.RED);
+        set1.setFillAlpha(110);
+        set1.setFillColor(Color.RED);
 
         set1.setLineWidth(1.75f);
         set1.setCircleSize(3f);
@@ -773,7 +784,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         set1.setHighLightColor(Color.WHITE);
         set1.setDrawValues(false);
 
-        ArrayList<LineDataSet> dataSets = new ArrayList<LineDataSet>();
+        ArrayList<LineDataSet> dataSets = new ArrayList<>();
         dataSets.add(set1); // add the datasets
 
         // create a data object with the datasets
