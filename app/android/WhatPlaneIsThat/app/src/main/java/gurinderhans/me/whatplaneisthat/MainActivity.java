@@ -93,9 +93,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     // sliding panel views for different states
     View mCollapsedView;
     View mAnchoredView;
-    View mExpandedView;
-
-    int blueColor = Color.rgb(89, 199, 250);
 
 
     @Override
@@ -156,8 +153,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         setupChart(chart, data, blueColor);
 
     }
-
-    LineChart chart;
 
     @Override
     protected void onResume() {
@@ -299,6 +294,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     // MARK: Pane slide listener
     //
 
+    SlidingUpPanelLayout.PanelState mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
+
 
     @Override
     public void onPanelSlide(View view, float v) {
@@ -316,22 +313,34 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         // bring back the panel short view
         openedToCollapsed(100l);
         setCollapsedPanelData();
+        mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
     }
 
     @Override
     public void onPanelExpanded(View view) {
-        collapsedToOpened(100l);
-        setOpenedPanelData();
+
+        if (mPanelState != SlidingUpPanelLayout.PanelState.ANCHORED && mPanelState != SlidingUpPanelLayout.PanelState.EXPANDED) {
+            collapsedToOpened(100l);
+            setOpenedPanelData();
+        }
+
+        mPanelState = SlidingUpPanelLayout.PanelState.EXPANDED;
     }
 
     @Override
     public void onPanelAnchored(View view) {
-        collapsedToOpened(100l);
-        setOpenedPanelData();
+
+        if (mPanelState != SlidingUpPanelLayout.PanelState.EXPANDED && mPanelState != SlidingUpPanelLayout.PanelState.ANCHORED) {
+            collapsedToOpened(100l);
+            setOpenedPanelData();
+        }
+
+        mPanelState = SlidingUpPanelLayout.PanelState.ANCHORED;
     }
 
     @Override
     public void onPanelHidden(View view) {
+        mPanelState = SlidingUpPanelLayout.PanelState.HIDDEN;
     }
 
 
@@ -504,6 +513,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     //
     // MARK: line chart
     //
+
+    LineChart chart;
+
+    int blueColor = Color.rgb(89, 199, 250);
 
     protected String[] mMonths = new String[]{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
