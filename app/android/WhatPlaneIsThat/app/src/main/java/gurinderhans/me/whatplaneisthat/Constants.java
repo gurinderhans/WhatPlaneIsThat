@@ -43,5 +43,9 @@ public class Constants {
 
 
     // max dp that the image will go up
-    static final float MAX_TRANSLATE_DP = -269.08267f;
+    public static final float MAX_TRANSLATE_DP = -269.08267f;
+
+
+    public static final int MIN_GRAPH_POINTS = 7;
+
 }

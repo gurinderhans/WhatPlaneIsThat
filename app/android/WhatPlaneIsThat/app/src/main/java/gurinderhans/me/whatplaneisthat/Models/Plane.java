@@ -1,10 +1,11 @@
 package gurinderhans.me.whatplaneisthat.Models;
 
 import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
 import android.util.Pair;
 
 import com.google.android.gms.maps.model.LatLng;
+
+import java.util.ArrayList;
 
 /**
  * Created by ghans on 6/15/15.
@@ -23,7 +24,10 @@ public class Plane {
 
     private LatLng planePos;
 
-    private float rotation, altitude, speed;
+    private float rotation;
+
+    private ArrayList<Float> altitude = new ArrayList<>(),
+            speed = new ArrayList<>();
 
     private Destination destination;
 
@@ -39,6 +43,42 @@ public class Plane {
         this.destination = planeBuilder.dest;
     }
 
+    public static class Builder {
+        private String key = "", shortName = "";
+        private LatLng planePos;
+        private float rotation;
+        private Destination dest;
+
+        public Builder key(String key) {
+            this.key = key;
+            return this;
+        }
+
+        public Builder shortName(String name) {
+            this.shortName = name;
+            return this;
+        }
+
+        public Builder position(LatLng pos) {
+            this.planePos = pos;
+            return this;
+        }
+
+        public Builder rotation(float val) {
+            this.rotation = val;
+            return this;
+        }
+
+        public Builder shortDestinationNames(Destination destination) {
+            this.dest = destination;
+            return this;
+        }
+
+        public Plane build() {
+            return new Plane(this);
+        }
+
+    }
 
     //
     // setters & getters
@@ -92,40 +132,27 @@ public class Plane {
         this.planeImage = planeImage;
     }
 
-    public static class Builder {
-        private String key = "", shortName = "";
-        private LatLng planePos;
-        private float rotation;
-        private Destination dest;
+    public float getSpeed() {
+        return speed.get(speed.size() - 1);
+    }
 
-        public Builder key(String key) {
-            this.key = key;
-            return this;
-        }
+    public ArrayList<Float> getSpeedDataSet() {
+        return speed;
+    }
 
-        public Builder shortName(String name) {
-            this.shortName = name;
-            return this;
-        }
+    public void setSpeed(float speed) {
+        this.speed.add(speed);
+    }
 
-        public Builder position(LatLng pos) {
-            this.planePos = pos;
-            return this;
-        }
+    public float getAltitude() {
+        return altitude.get(altitude.size() - 1);
+    }
 
-        public Builder rotation(float val) {
-            this.rotation = val;
-            return this;
-        }
+    public ArrayList<Float> getAltitudeDataSet() {
+        return altitude;
+    }
 
-        public Builder shortDestinationNames(Destination destination) {
-            this.dest = destination;
-            return this;
-        }
-
-        public Plane build() {
-            return new Plane(this);
-        }
-
+    public void setAltitude(float altitude) {
+        this.altitude.add(altitude);
     }
 }

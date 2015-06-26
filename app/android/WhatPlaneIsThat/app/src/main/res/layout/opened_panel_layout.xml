@@ -94,8 +94,14 @@
     </LinearLayout>
 
     <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/chart1"
+        android:id="@+id/planeAltitudeChart"
         android:layout_width="match_parent"
-        android:layout_height="130dp"
+        android:layout_height="140dp"
+        android:layout_marginTop="20dp" />
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/planeSpeedChart"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
         android:layout_marginTop="20dp" />
 </LinearLayout>

@@ -62,7 +62,7 @@
 
         <include
             android:id="@+id/panelAnchoredView"
-            layout="@layout/anchored_panel_layout"
+            layout="@layout/opened_panel_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 

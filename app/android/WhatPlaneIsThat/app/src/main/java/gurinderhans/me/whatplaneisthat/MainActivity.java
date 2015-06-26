@@ -94,6 +94,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     View mCollapsedView;
     View mAnchoredView;
 
+    // graph charts
+    LineChart mAltitudeLineChart;
+    LineChart mSpeedLineChart;
+
+    SlidingUpPanelLayout.PanelState mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,7 +137,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
                     @Override
                     public void onCancel() {
-
                     }
                 });
             }
@@ -147,11 +152,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mPlaneImage.setTranslationY(pixels);
 
 
-        LineData data = getData(36, 100);
-
-        chart = (LineChart) findViewById(R.id.chart1);
-        setupChart(chart, data, blueColor);
-
+        mAltitudeLineChart = (LineChart) findViewById(R.id.planeAltitudeChart);
+        mSpeedLineChart = (LineChart) findViewById(R.id.planeSpeedChart);
     }
 
     @Override
@@ -267,11 +269,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public boolean onMarkerClick(Marker marker) {
 
-        Log.i(TAG, "id: " + marker.getId());
-
         mCurrentFocusedPlaneMarkerIndex = Tools.getPlaneMarkerIdIndex(mPlaneMarkers, marker.getId());
 
         if (mCurrentFocusedPlaneMarkerIndex != -1) {
+
+            setupChart(mAltitudeLineChart, getPlaneAltitudeData(), Color.rgb(89, 199, 250));
+            setupChart(mSpeedLineChart, getPlaneSpeedData(), Color.rgb(250, 104, 104));
 
             Plane oSelectedPlane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
 
@@ -293,9 +296,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     //
     // MARK: Pane slide listener
     //
-
-    SlidingUpPanelLayout.PanelState mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
-
 
     @Override
     public void onPanelSlide(View view, float v) {
@@ -319,7 +319,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public void onPanelExpanded(View view) {
 
-        if (mPanelState != SlidingUpPanelLayout.PanelState.ANCHORED && mPanelState != SlidingUpPanelLayout.PanelState.EXPANDED) {
+        if (mPanelState != SlidingUpPanelLayout.PanelState.ANCHORED &&
+                mPanelState != SlidingUpPanelLayout.PanelState.EXPANDED) {
             collapsedToOpened(100l);
             setOpenedPanelData();
         }
@@ -330,7 +331,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public void onPanelAnchored(View view) {
 
-        if (mPanelState != SlidingUpPanelLayout.PanelState.EXPANDED && mPanelState != SlidingUpPanelLayout.PanelState.ANCHORED) {
+        if (mPanelState != SlidingUpPanelLayout.PanelState.EXPANDED &&
+                mPanelState != SlidingUpPanelLayout.PanelState.ANCHORED) {
             collapsedToOpened(100l);
             setOpenedPanelData();
         }
@@ -514,23 +516,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     // MARK: line chart
     //
 
-    LineChart chart;
-
-    int blueColor = Color.rgb(89, 199, 250);
-
-    protected String[] mMonths = new String[]{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
     private void setupChart(LineChart chart, LineData data, int color) {
 
         // no description text
         chart.setDescription("");
         chart.setNoDataTextDescription("You need to provide data for the chart.");
 
-        // mChart.setDrawHorizontalGrid(false);
-        //
         // enable / disable grid background
         chart.setDrawGridBackground(false);
-//        chart.getRenderer().getGridPaint().setGridColor(Color.WHITE & 0x70FFFFFF);
 
         // enable touch gestures
         chart.setTouchEnabled(true);
@@ -544,11 +537,15 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         chart.setBackgroundColor(color);
 
-        // set custom chart offsets (automatic offset calculation is hereby disabled)
-        chart.setViewPortOffsets(10, 0, 10, 0);
+        chart.setViewPortOffsets(50, 20, 50, 0);
 
         // add data
         chart.setData(data);
+
+        if (data.getDataSetByIndex(0).getValueCount() >= Constants.MIN_GRAPH_POINTS) {
+            chart.setVisibleXRange(Constants.MIN_GRAPH_POINTS);
+            chart.moveViewToX(data.getDataSetByIndex(0).getValueCount() - Constants.MIN_GRAPH_POINTS);
+        }
 
         // get the legend (only possible after setting data)
         Legend l = chart.getLegend();
@@ -556,46 +553,88 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         chart.getAxisLeft().setEnabled(false);
         chart.getAxisRight().setEnabled(false);
-
         chart.getXAxis().setEnabled(false);
+
+        chart.getAxisLeft().setStartAtZero(false);
 
         // animate calls invalidate()...
         chart.animateX(2500);
     }
 
-    private LineData getData(int count, float range) {
+    private LineData getPlaneAltitudeData() {
+
+        if (mCurrentFocusedPlaneMarkerIndex == -1)
+            return null;
+
+        ArrayList<Float> altitudeSet = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getAltitudeDataSet();
 
         ArrayList<String> xVals = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            xVals.add(mMonths[i % 12]);
-        }
+
+        for (int i = 0; i < altitudeSet.size(); i++)
+            xVals.add(i + "");
 
         ArrayList<Entry> yVals = new ArrayList<>();
 
-        for (int i = 0; i < count; i++) {
-            float val = (float) (Math.random() * range) + 3;
+        for (int i = 0; i < altitudeSet.size(); i++) {
+            float val = altitudeSet.get(i);
             yVals.add(new Entry(val, i));
         }
 
-        // create a dataset and give it a type
-        LineDataSet set1 = new LineDataSet(yVals, "DataSet 1");
-        set1.setFillAlpha(110);
-        set1.setFillColor(Color.RED);
+        LineDataSet set = new LineDataSet(yVals, "Altitude");
+//        set.setFillAlpha(110);
+//        set.setFillColor(Color.RED);
 
-        set1.setLineWidth(1.75f);
-        set1.setCircleSize(3f);
-        set1.setColor(Color.WHITE);
-        set1.setCircleColor(Color.WHITE);
-        set1.setHighLightColor(Color.WHITE);
-        set1.setDrawValues(false);
+        set.setLineWidth(1.75f);
+        set.setCircleSize(3f);
+        set.setColor(Color.WHITE);
+        set.setCircleColor(Color.WHITE);
+        set.setHighLightColor(Color.WHITE);
+        set.setValueTextColor(Color.WHITE);
+        set.setDrawValues(true);
 
         ArrayList<LineDataSet> dataSets = new ArrayList<>();
-        dataSets.add(set1); // add the datasets
+        dataSets.add(set); // add the datasets
 
         // create a data object with the datasets
-        LineData data = new LineData(xVals, dataSets);
+        return new LineData(xVals, dataSets);
 
-        return data;
+    }
+
+    private LineData getPlaneSpeedData() {
+
+        if (mCurrentFocusedPlaneMarkerIndex == -1)
+            return null;
+
+        ArrayList<Float> speedDataSet = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getSpeedDataSet();
+
+        ArrayList<String> xVals = new ArrayList<>();
+
+        for (int i = 0; i < speedDataSet.size(); i++)
+            xVals.add(i + "");
+
+        ArrayList<Entry> yVals = new ArrayList<>();
+
+        for (int i = 0; i < speedDataSet.size(); i++) {
+            float val = speedDataSet.get(i);
+            yVals.add(new Entry(val, i));
+        }
+
+        LineDataSet set = new LineDataSet(yVals, "Speed");
+
+        set.setLineWidth(1.75f);
+        set.setCircleSize(3f);
+        set.setColor(Color.WHITE);
+        set.setCircleColor(Color.WHITE);
+        set.setHighLightColor(Color.WHITE);
+        set.setValueTextColor(Color.WHITE);
+        set.setDrawValues(true);
+
+        ArrayList<LineDataSet> dataSets = new ArrayList<>();
+        dataSets.add(set); // add the datasets
+
+        // create a data object with the datasets
+        return new LineData(xVals, dataSets);
+
     }
 
 
@@ -752,6 +791,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
                     Plane tmpPlane = planeBuilder.build();
 
+                    if (!planeDataArr.isNull(4))
+                        tmpPlane.setAltitude((float) planeDataArr.getDouble(4));
+
+                    if (!planeDataArr.isNull(5))
+                        tmpPlane.setSpeed((float) planeDataArr.getDouble(5));
+
                     int markerIndex = Tools.getPlaneMarkerIndex(mPlaneMarkers, key);
 
                     // add plane to markers list if not
@@ -767,6 +812,12 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
                         mPlaneMarkers.get(markerIndex).first.setPlanePos(tmpPlane.getPlanePos());
                         mPlaneMarkers.get(markerIndex).first.setRotation(tmpPlane.getRotation());
+
+                        mPlaneMarkers.get(markerIndex).first.setAltitude(tmpPlane.getAltitude());
+                        mPlaneMarkers.get(markerIndex).first.setSpeed(tmpPlane.getSpeed());
+
+                        // TODO: update graph table(s) here
+
 
                         // only set destination if it's null, otherwise other destination
                         // variables are set to empty, ex. `toFullCity` as this information
