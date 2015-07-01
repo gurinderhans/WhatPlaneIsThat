@@ -17,6 +17,10 @@ public class PlaneApplication extends Application {
 
     private ImageLoader mImageLoader;
 
+    public synchronized static PlaneApplication getInstance() {
+        return sInstance;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -26,10 +30,6 @@ public class PlaneApplication extends Application {
         mImageLoader = new ImageLoader(mRequestQueue, new BitmapLruCache());
 
         sInstance = this;
-    }
-
-    public synchronized static PlaneApplication getInstance() {
-        return sInstance;
     }
 
     public RequestQueue getRequestQueue() {

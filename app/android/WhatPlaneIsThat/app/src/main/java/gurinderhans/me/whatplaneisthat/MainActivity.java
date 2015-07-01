@@ -79,581 +79,41 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     SensorManager mSensorManager;
     LocationManager mLocationManager;
-
-    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     LatLng mUserLocation;
     Marker mUserMarker;
     GroundOverlay mPlaneVisibilityCircle;
-
     @Nullable
     Polyline mCurrentDrawnPolyline; // current drawn polyline
-
     // main activity views
     ImageButton mLockCameraToUserLocation;
     SlidingUpPanelLayout mSlidingUpPanelLayout;
     ImageView mPlaneImage;
-
     // sliding panel views for different states
     View mCollapsedView;
     View mAnchoredView;
-
     // graph charts
     LineChart mAltitudeLineChart;
     LineChart mSpeedLineChart;
-
-    SlidingUpPanelLayout.PanelState mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
-
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-
-        mLockCameraToUserLocation = (ImageButton) findViewById(R.id.lockToLocation);
-        mSlidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
-        mPlaneImage = (ImageView) findViewById(R.id.planeImage);
-
-        mCollapsedView = findViewById(R.id.panelCollapsedView);
-        mAnchoredView = findViewById(R.id.panelAnchoredView);
-
-        // hide all other panel views so only collapsed shows initially
-        mAnchoredView.setVisibility(View.INVISIBLE);
-
-        // get cached location
-        Location cachedLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-        mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
-
-        mLockCameraToUserLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                followUser = true;
-                cameraAnimationFinished = false;
-                mLockCameraToUserLocation.setImageResource(R.drawable.ic_gps_fixed_blue_24dp);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, Constants.MAP_CAMERA_LOCK_MIN_ZOOM), new GoogleMap.CancelableCallback() {
-                    @Override
-                    public void onFinish() {
-                        cameraAnimationFinished = true;
-                    }
-
-                    @Override
-                    public void onCancel() {
-                    }
-                });
-            }
-        });
-
-        setUpMapIfNeeded();
-
-        mSlidingUpPanelLayout.setPanelSlideListener(this);
-
-        // set image initial position so it hides behind the panel
-        final float scale = getResources().getDisplayMetrics().density;
-        int pixels = (int) (230 * scale + 0.5f);
-        mPlaneImage.setTranslationY(pixels);
-
-
-        mAltitudeLineChart = (LineChart) findViewById(R.id.planeAltitudeChart);
-        mSpeedLineChart = (LineChart) findViewById(R.id.planeSpeedChart);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        setUpMapIfNeeded();
-
-        // fetch data
-        mHandler.postDelayed(fetchData, 0);
-
-        // register different types of listeners
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000l, 0f, this);
-        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_GAME);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-
-        // remove runnable
-        mHandler.removeCallbacks(fetchData);
-
-        // remove listeners
-        mLocationManager.removeUpdates(this);
-        mSensorManager.unregisterListener(this);
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (ev.getAction() == MotionEvent.ACTION_MOVE) {
-            // TODO: maybe wanna track distance and set to true if past a certain dist?
-            followUser = false;
-            mLockCameraToUserLocation.setImageResource(R.drawable.ic_gps_fixed_black_24dp);
-        }
-        return super.dispatchTouchEvent(ev);
-    }
-
-
-    //
-    // MARK: location manager methods
-    //
-
-
-    @Override
-    public void onLocationChanged(Location location) {
-
-        // update user location
-        mUserLocation = new LatLng(location.getLatitude(), location.getLongitude());
-        mUserMarker.setPosition(mUserLocation);
-
-        // plane visibiity circle - radius will depend on the actual visibilty retreived from some weather API ( TODO )
-        mPlaneVisibilityCircle.setPosition(mUserLocation);
-        mPlaneVisibilityCircle.setDimensions(5000f);
-
-        // follow user maker
-        if (followUser && cameraAnimationFinished) {
-            cameraAnimationFinished = false;
-            // FIXME: zoom value not corrected properly
-            float zoom = (mMap.getCameraPosition().zoom < Constants.MAP_CAMERA_LOCK_MIN_ZOOM) ? Constants.MAP_CAMERA_LOCK_MIN_ZOOM : mMap.getCameraPosition().zoom;
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, zoom), new GoogleMap.CancelableCallback() {
-                @Override
-                public void onFinish() {
-                    cameraAnimationFinished = true;
-                }
-
-                @Override
-                public void onCancel() {
-
-                }
-            });
-        }
-
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        Log.i(TAG, "status changed of: " + provider + " to: " + status + ", extras: " + extras);
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        Log.i(TAG, "provider enabled: " + provider);
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        Log.i(TAG, "provider disabled: " + provider);
-    }
-
-
-    //
-    // MARK: sensor events
-    //
-
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        // get the angle around the z-axis rotated
-        float degree = Math.round(event.values[0]);
-        mUserMarker.setRotation(degree);
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-    }
-
-
-    //
-    // MARK: marker click listener
-    //
-
-
-    @Override
-    public boolean onMarkerClick(Marker marker) {
-
-        mCurrentFocusedPlaneMarkerIndex = Tools.getPlaneMarkerIdIndex(mPlaneMarkers, marker.getId());
-
-        if (mCurrentFocusedPlaneMarkerIndex != -1) {
-
-            LineData planeAltitudeData = getPlaneAltitudeData();
-            LineData planeSpeedData = getPlaneSpeedData();
-
-            if (planeAltitudeData != null)
-                setupChart(mAltitudeLineChart, planeAltitudeData, Color.rgb(89, 199, 250));
-
-            if (planeSpeedData != null)
-                setupChart(mSpeedLineChart, planeSpeedData, Color.rgb(250, 104, 104));
-
-            Plane oSelectedPlane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
-
-            // call to network to fetch data
-            String reqUrl = String.format(Constants.PLANE_DATA_URL,
-                    oSelectedPlane.keyIdentifier);
+    boolean expandedStateNow = false;
+    float prevVal = 0;
+    Runnable fetchData = new Runnable() {
+        @Override
+        public void run() {
+            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
+            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
+            String reqUrl = Constants.BASE_URL + String.format(
+                    Constants.OPTIONS_FORMAT,
+                    north_west.latitude + "",
+                    south_east.latitude + "",
+                    north_west.longitude + "",
+                    south_east.longitude + "");
 
             // TODO: add error listener
-            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null,
-                    onFetchedPlaneInfo, null);
+            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
             PlaneApplication.getInstance().getRequestQueue().add(request);
-
         }
-
-        return true;
-    }
-
-
-    //
-    // MARK: Pane slide listener
-    //
-
-    @Override
-    public void onPanelSlide(View view, float v) {
-        final float scale = getResources().getDisplayMetrics().density;
-        int pixels = (int) (230 * scale + 0.5f);
-
-        float transitionPixel = (-(v * 100 * 16.65f) + pixels);
-        float transitiondp = (transitionPixel - 0.5f) / scale;
-
-        mPlaneImage.setTranslationY(((transitiondp <= Constants.MAX_TRANSLATE_DP) ? (Constants.MAX_TRANSLATE_DP * scale + 0.5f) : transitionPixel));
-    }
-
-    @Override
-    public void onPanelCollapsed(View view) {
-        // bring back the panel short view
-        openedToCollapsed(100l);
-        setCollapsedPanelData();
-        mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
-    }
-
-    @Override
-    public void onPanelExpanded(View view) {
-
-        if (mPanelState != SlidingUpPanelLayout.PanelState.ANCHORED &&
-                mPanelState != SlidingUpPanelLayout.PanelState.EXPANDED) {
-            collapsedToOpened(100l);
-            setOpenedPanelData();
-        }
-
-        mPanelState = SlidingUpPanelLayout.PanelState.EXPANDED;
-    }
-
-    @Override
-    public void onPanelAnchored(View view) {
-
-        if (mPanelState != SlidingUpPanelLayout.PanelState.EXPANDED &&
-                mPanelState != SlidingUpPanelLayout.PanelState.ANCHORED) {
-            collapsedToOpened(100l);
-            setOpenedPanelData();
-        }
-
-        mPanelState = SlidingUpPanelLayout.PanelState.ANCHORED;
-    }
-
-    @Override
-    public void onPanelHidden(View view) {
-        mPanelState = SlidingUpPanelLayout.PanelState.HIDDEN;
-    }
-
-
-    //
-    // MARK: panel view transitions
-    //
-
-    private void openedToCollapsed(final long duration) {
-
-        Animation animation = new AlphaAnimation(1, 0);
-        animation.setInterpolator(new AccelerateInterpolator());
-        animation.setDuration(duration);
-
-        animation.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-                // show anchored view
-                Animation animation1 = new AlphaAnimation(0, 1);
-                mCollapsedView.setVisibility(View.VISIBLE);
-                animation1.setInterpolator(new AccelerateInterpolator());
-                animation1.setDuration(duration);
-                mCollapsedView.startAnimation(animation1);
-            }
-
-            @Override
-            public void onAnimationEnd(Animation animation) {
-                mAnchoredView.setVisibility(View.GONE);
-
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-
-            }
-        });
-
-        mAnchoredView.startAnimation(animation);
-    }
-
-    private void collapsedToOpened(final long duration) {
-        Animation animation = new AlphaAnimation(1, 0);
-        animation.setInterpolator(new AccelerateInterpolator());
-        animation.setDuration(duration);
-
-        animation.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-                // show anchored view
-                Animation animation1 = new AlphaAnimation(0, 1);
-                mAnchoredView.setVisibility(View.VISIBLE);
-                animation1.setInterpolator(new AccelerateInterpolator());
-                animation1.setDuration(duration);
-                mAnchoredView.startAnimation(animation1);
-            }
-
-            @Override
-            public void onAnimationEnd(Animation animation) {
-                mCollapsedView.setVisibility(View.GONE);
-
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-
-            }
-        });
-
-        mCollapsedView.startAnimation(animation);
-    }
-
-
-    //
-    // MARK: custom methods
-    //
-
-
-    private void setUpMapIfNeeded() {
-        // Do a null check to confirm that we have not already instantiated the map.
-        if (mMap == null) {
-            // Try to obtain the map from the SupportMapFragment.
-            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
-                    .getMap();
-            // Check if we were successful in obtaining the map.
-            if (mMap != null) {
-                setUpMap();
-            }
-        }
-    }
-
-    private void setUpMap() {
-
-        // user marker
-        mUserMarker = mMap.addMarker(new MarkerOptions().position(mUserLocation)
-                        .icon(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_marker, -1, -1)))
-                        .rotation(0f)
-                        .flat(true)
-                        .anchor(0.5f, 0.5f)
-        );
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, 12f));
-
-        // user visibility circle
-        mPlaneVisibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_visibility, -1, -1)))
-                .anchor(0.5f, 0.5f)
-                .position(mUserLocation, 500000f));
-
-        // hide the marker toolbar - the two buttons on the bottom right that go to google maps
-        mMap.getUiSettings().setMapToolbarEnabled(false);
-
-        // marker click listener
-        mMap.setOnMarkerClickListener(this);
-
-    }
-
-    public void updateSlidingPane() {
-        switch (mSlidingUpPanelLayout.getPanelState()) {
-            case COLLAPSED:
-                setCollapsedPanelData();
-                break;
-            case ANCHORED:
-                setOpenedPanelData();
-                break;
-            case EXPANDED:
-                setOpenedPanelData();
-                break;
-            default:
-                break;
-        }
-    }
-
-    public void setCollapsedPanelData() {
-
-        if (mCurrentFocusedPlaneMarkerIndex == -1) return;
-
-        Plane plane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
-
-        // plane name
-        ((TextView) findViewById(R.id.planeName)).setText(!plane.shortName.isEmpty() ? plane.shortName : "No Callsign");
-
-        // plane from -> to airports
-        ((TextView) findViewById(R.id.planeFrom)).setText(!plane.getDestination().fromShort.isEmpty() ? plane.getDestination().fromShort : "N/a");
-        ((TextView) findViewById(R.id.planeTo)).setText(!plane.getDestination().toShort.isEmpty() ? plane.getDestination().toShort : "N/a");
-
-        ((TextView) findViewById(R.id.arrivalTime)).setText(plane.getDestination().getArrivalTime());
-
-    }
-
-    public void setOpenedPanelData() {
-        if (mCurrentFocusedPlaneMarkerIndex == -1) return;
-
-        Plane plane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
-
-        // plane name and airline name
-        ((TextView) findViewById(R.id.anchoredPanelPlaneName)).setText(plane.getFullName());
-        ((TextView) findViewById(R.id.anchoredPanelAirlineName)).setText(plane.getAirlineName());
-
-        // plane from -> to airports
-        ((TextView) findViewById(R.id.anchoredPanelFromCity)).setText(plane.getDestination().fromFullCity);
-        ((TextView) findViewById(R.id.anchoredPanelToCity)).setText(plane.getDestination().toFullCity);
-
-        ((TextView) findViewById(R.id.anchoredPanelFromAirport)).setText(plane.getDestination().fromFullAirport);
-        ((TextView) findViewById(R.id.anchoredPanelToAirport)).setText(plane.getDestination().toFullAirport);
-
-        if (plane.getPlaneImage() != null && plane.getPlaneImage().first != null)
-            mPlaneImage.setImageBitmap(plane.getPlaneImage().first);
-
-    }
-
-
-    //
-    // MARK: line chart
-    //
-
-    private void setupChart(LineChart chart, LineData data, int color) {
-
-        // no description text
-        chart.setDescription("");
-        chart.setNoDataTextDescription("You need to provide data for the chart.");
-
-        // enable / disable grid background
-        chart.setDrawGridBackground(false);
-
-        // enable touch gestures
-        chart.setTouchEnabled(true);
-
-        // enable scaling and dragging
-        chart.setDragEnabled(true);
-        chart.setScaleEnabled(true);
-
-        // if disabled, scaling can be done on x- and y-axis separately
-        chart.setPinchZoom(false);
-
-        chart.setBackgroundColor(color);
-
-        chart.setViewPortOffsets(50, 20, 50, 0);
-
-        // add data
-        chart.setData(data);
-
-        if (data.getDataSetByIndex(0).getValueCount() >= Constants.MIN_GRAPH_POINTS) {
-            chart.setVisibleXRange(Constants.MIN_GRAPH_POINTS);
-            chart.moveViewToX(data.getDataSetByIndex(0).getValueCount() - Constants.MIN_GRAPH_POINTS);
-        }
-
-        // get the legend (only possible after setting data)
-        Legend l = chart.getLegend();
-        l.setEnabled(false);
-
-        chart.getAxisLeft().setEnabled(false);
-        chart.getAxisRight().setEnabled(false);
-        chart.getXAxis().setEnabled(false);
-
-        chart.getAxisLeft().setStartAtZero(false);
-
-        // animate calls invalidate()...
-        chart.animateX(2500);
-    }
-
-    @Nullable
-    private LineData getPlaneAltitudeData() {
-
-        if (mCurrentFocusedPlaneMarkerIndex == -1)
-            return null;
-
-        ArrayList<Float> altitudeSet = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getAltitudeDataSet();
-
-        ArrayList<String> xVals = new ArrayList<>();
-
-        for (int i = 0; i < altitudeSet.size(); i++)
-            xVals.add(i + "");
-
-        ArrayList<Entry> yVals = new ArrayList<>();
-
-        for (int i = 0; i < altitudeSet.size(); i++) {
-            float val = altitudeSet.get(i);
-            yVals.add(new Entry(val, i));
-        }
-
-        LineDataSet set = new LineDataSet(yVals, "Altitude");
-//        set.setFillAlpha(110);
-//        set.setFillColor(Color.RED);
-
-        set.setLineWidth(1.75f);
-        set.setCircleSize(3f);
-        set.setColor(Color.WHITE);
-        set.setCircleColor(Color.WHITE);
-        set.setHighLightColor(Color.WHITE);
-        set.setValueTextColor(Color.WHITE);
-        set.setDrawValues(true);
-
-        ArrayList<LineDataSet> dataSets = new ArrayList<>();
-        dataSets.add(set); // add the datasets
-
-        // create a data object with the datasets
-        return new LineData(xVals, dataSets);
-
-    }
-
-    @Nullable
-    private LineData getPlaneSpeedData() {
-
-        if (mCurrentFocusedPlaneMarkerIndex == -1)
-            return null;
-
-        ArrayList<Float> speedDataSet = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getSpeedDataSet();
-
-        ArrayList<String> xVals = new ArrayList<>();
-
-        for (int i = 0; i < speedDataSet.size(); i++)
-            xVals.add(i + "");
-
-        ArrayList<Entry> yVals = new ArrayList<>();
-
-        for (int i = 0; i < speedDataSet.size(); i++) {
-            float val = speedDataSet.get(i);
-            yVals.add(new Entry(val, i));
-        }
-
-        LineDataSet set = new LineDataSet(yVals, "Speed");
-
-        set.setLineWidth(1.75f);
-        set.setCircleSize(3f);
-        set.setColor(Color.WHITE);
-        set.setCircleColor(Color.WHITE);
-        set.setHighLightColor(Color.WHITE);
-        set.setValueTextColor(Color.WHITE);
-        set.setDrawValues(true);
-
-        ArrayList<LineDataSet> dataSets = new ArrayList<>();
-        dataSets.add(set); // add the datasets
-
-        // create a data object with the datasets
-        return new LineData(xVals, dataSets);
-
-    }
-
-
-    //
-    // MARK: volley response listeners
-    //
-
-
+    };
+    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     Response.Listener<JSONObject> onFetchedPlaneInfo = new Response.Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
@@ -672,11 +132,15 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setFullName(Tools.getJsonString(response, Constants.KEY_AIRCRAFT_NAME));
             mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setAirlineName(Tools.getJsonString(response, Constants.KEY_AIRLINE_NAME));
 
-            // build destination object
-            Destination.Builder destBuilder = new Destination.Builder()
-                    .fromShortName(mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getDestination().fromShort)
-                    .toShortName(mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getDestination().toShort);
+            Destination prevDestination = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getDestination();
 
+            // build destination object
+            Destination.Builder destBuilder = new Destination.Builder();
+
+            if (prevDestination != null) {
+                destBuilder.fromShortName(prevDestination.fromShort)
+                        .toShortName(prevDestination.toShort);
+            }
 
             if (!response.isNull(Constants.KEY_PLANE_FROM_SHORT))
                 destBuilder.fromShortName(Tools.getJsonString(response, Constants.KEY_PLANE_FROM_SHORT));
@@ -771,6 +235,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
     };
 
+
+    //
+    // MARK: location manager methods
+    //
     Response.Listener<JSONObject> onFetchedAllPlanes = new Response.Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
@@ -854,28 +322,540 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
     };
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+
+        mLockCameraToUserLocation = (ImageButton) findViewById(R.id.lockToLocation);
+        mSlidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+        mPlaneImage = (ImageView) findViewById(R.id.planeImage);
+
+        mCollapsedView = findViewById(R.id.panelCollapsedView);
+        mAnchoredView = findViewById(R.id.panelAnchoredView);
+
+        // hide all other panel views so only collapsed shows initially
+        mAnchoredView.setVisibility(View.INVISIBLE);
+
+        // get cached location
+        Location cachedLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
+
+        mLockCameraToUserLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                followUser = true;
+                cameraAnimationFinished = false;
+                mLockCameraToUserLocation.setImageResource(R.drawable.ic_gps_fixed_blue_24dp);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, Constants.MAP_CAMERA_LOCK_MIN_ZOOM), new GoogleMap.CancelableCallback() {
+                    @Override
+                    public void onFinish() {
+                        cameraAnimationFinished = true;
+                    }
+
+                    @Override
+                    public void onCancel() {
+                    }
+                });
+            }
+        });
+
+        setUpMapIfNeeded();
+
+        mSlidingUpPanelLayout.setPanelSlideListener(this);
+
+        // set image initial position so it hides behind the panel
+        final float scale = getResources().getDisplayMetrics().density;
+        int pixels = (int) (230 * scale + 0.5f);
+        mPlaneImage.setTranslationY(pixels);
+
+
+        mAltitudeLineChart = (LineChart) findViewById(R.id.planeAltitudeChart);
+        mSpeedLineChart = (LineChart) findViewById(R.id.planeSpeedChart);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setUpMapIfNeeded();
+
+        // fetch data
+        mHandler.postDelayed(fetchData, 0);
+
+        // register different types of listeners
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000l, 0f, this);
+        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_GAME);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // remove runnable
+        mHandler.removeCallbacks(fetchData);
+
+        // remove listeners
+        mLocationManager.removeUpdates(this);
+        mSensorManager.unregisterListener(this);
+    }
+
+
+    //
+    // MARK: sensor events
+    //
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_MOVE) {
+            // TODO: maybe wanna track distance and set to true if past a certain dist?
+            followUser = false;
+            mLockCameraToUserLocation.setImageResource(R.drawable.ic_gps_fixed_black_24dp);
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+        // update user location
+        mUserLocation = new LatLng(location.getLatitude(), location.getLongitude());
+        mUserMarker.setPosition(mUserLocation);
+
+        // plane visibiity circle - radius will depend on the actual visibilty retreived from some weather API ( TODO )
+        mPlaneVisibilityCircle.setPosition(mUserLocation);
+        mPlaneVisibilityCircle.setDimensions(5000f);
+
+        // follow user maker
+        if (followUser && cameraAnimationFinished) {
+            cameraAnimationFinished = false;
+            // FIXME: zoom value not corrected properly
+            float zoom = (mMap.getCameraPosition().zoom < Constants.MAP_CAMERA_LOCK_MIN_ZOOM) ? Constants.MAP_CAMERA_LOCK_MIN_ZOOM : mMap.getCameraPosition().zoom;
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, zoom), new GoogleMap.CancelableCallback() {
+                @Override
+                public void onFinish() {
+                    cameraAnimationFinished = true;
+                }
+
+                @Override
+                public void onCancel() {
+
+                }
+            });
+        }
+
+    }
+
+
+    //
+    // MARK: marker click listener
+    //
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+        Log.i(TAG, "status changed of: " + provider + " to: " + status + ", extras: " + extras);
+    }
+
+
+    //
+    // MARK: Pane slide listener
+    //
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        Log.i(TAG, "provider enabled: " + provider);
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+        Log.i(TAG, "provider disabled: " + provider);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        // get the angle around the z-axis rotated
+        float degree = Math.round(event.values[0]);
+        mUserMarker.setRotation(degree);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+
+        mCurrentFocusedPlaneMarkerIndex = Tools.getPlaneMarkerIdIndex(mPlaneMarkers, marker.getId());
+
+        if (mCurrentFocusedPlaneMarkerIndex != -1) {
+
+            LineData planeAltitudeData = getPlaneAltitudeData();
+            LineData planeSpeedData = getPlaneSpeedData();
+
+            if (planeAltitudeData != null)
+                setupChart(mAltitudeLineChart, planeAltitudeData, Color.rgb(89, 199, 250));
+
+            if (planeSpeedData != null)
+                setupChart(mSpeedLineChart, planeSpeedData, Color.rgb(250, 104, 104));
+
+            Plane oSelectedPlane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
+
+            // call to network to fetch data
+            String reqUrl = String.format(Constants.PLANE_DATA_URL,
+                    oSelectedPlane.keyIdentifier);
+
+            // TODO: add error listener
+            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null,
+                    onFetchedPlaneInfo, null);
+            PlaneApplication.getInstance().getRequestQueue().add(request);
+
+        }
+
+        return true;
+    }
+
+    @Override
+    public void onPanelSlide(View view, float v) {
+        final float scale = getResources().getDisplayMetrics().density;
+        int pixels = (int) (230 * scale + 0.5f);
+
+        float transitionPixel = (-(v * 100 * 16.65f) + pixels);
+        float transitiondp = (transitionPixel - 0.5f) / scale;
+
+        // going up and state hasn't been changed
+        if (v - prevVal > 0 && !expandedStateNow) {
+            expandedStateNow = true;
+            collapsedToOpened(100l);
+            setOpenedPanelData();
+        }
+
+        mPlaneImage.setTranslationY(((transitiondp <= Constants.MAX_TRANSLATE_DP) ? (Constants.MAX_TRANSLATE_DP * scale + 0.5f) : transitionPixel));
+    }
+
+    @Override
+    public void onPanelCollapsed(View view) {
+        // bring back the panel short view
+        openedToCollapsed(100l);
+        setCollapsedPanelData();
+        expandedStateNow = false;
+    }
+
+
+    //
+    // MARK: panel view transitions
+    //
+
+    @Override
+    public void onPanelExpanded(View view) {
+    }
+
+    @Override
+    public void onPanelAnchored(View view) {
+    }
+
+
+    //
+    // MARK: custom methods
+    //
+
+    @Override
+    public void onPanelHidden(View view) {
+    }
+
+    private void openedToCollapsed(final long duration) {
+
+        Animation animation = new AlphaAnimation(1, 0);
+        animation.setInterpolator(new AccelerateInterpolator());
+        animation.setDuration(duration);
+
+        animation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+                // show anchored view
+                Animation animation1 = new AlphaAnimation(0, 1);
+                mCollapsedView.setVisibility(View.VISIBLE);
+                animation1.setInterpolator(new AccelerateInterpolator());
+                animation1.setDuration(duration);
+                mCollapsedView.startAnimation(animation1);
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                mAnchoredView.setVisibility(View.GONE);
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
+
+        mAnchoredView.startAnimation(animation);
+    }
+
+    private void collapsedToOpened(final long duration) {
+        Animation animation = new AlphaAnimation(1, 0);
+        animation.setInterpolator(new AccelerateInterpolator());
+        animation.setDuration(duration);
+
+        animation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+                // show anchored view
+                Animation animation1 = new AlphaAnimation(0, 1);
+                mAnchoredView.setVisibility(View.VISIBLE);
+                animation1.setInterpolator(new AccelerateInterpolator());
+                animation1.setDuration(duration);
+                mAnchoredView.startAnimation(animation1);
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                mCollapsedView.setVisibility(View.GONE);
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
+
+        mCollapsedView.startAnimation(animation);
+    }
+
+    private void setUpMapIfNeeded() {
+        // Do a null check to confirm that we have not already instantiated the map.
+        if (mMap == null) {
+            // Try to obtain the map from the SupportMapFragment.
+            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
+                    .getMap();
+            // Check if we were successful in obtaining the map.
+            if (mMap != null) {
+                setUpMap();
+            }
+        }
+    }
+
+    private void setUpMap() {
+
+        // user marker
+        mUserMarker = mMap.addMarker(new MarkerOptions().position(mUserLocation)
+                        .icon(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_marker, -1, -1)))
+                        .rotation(0f)
+                        .flat(true)
+                        .anchor(0.5f, 0.5f)
+        );
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, 12f));
+
+        // user visibility circle
+        mPlaneVisibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_visibility, -1, -1)))
+                .anchor(0.5f, 0.5f)
+                .position(mUserLocation, 500000f));
+
+        // hide the marker toolbar - the two buttons on the bottom right that go to google maps
+        mMap.getUiSettings().setMapToolbarEnabled(false);
+
+        // marker click listener
+        mMap.setOnMarkerClickListener(this);
+
+    }
+
+
+    //
+    // MARK: line chart
+    //
+
+    public void updateSlidingPane() {
+        switch (mSlidingUpPanelLayout.getPanelState()) {
+            case COLLAPSED:
+                setCollapsedPanelData();
+                break;
+            case ANCHORED:
+                setOpenedPanelData();
+                break;
+            case EXPANDED:
+                setOpenedPanelData();
+                break;
+            default:
+                break;
+        }
+    }
+
+    public void setCollapsedPanelData() {
+
+        if (mCurrentFocusedPlaneMarkerIndex == -1) return;
+
+        Plane plane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
+
+        // plane name
+        ((TextView) findViewById(R.id.planeName)).setText(!plane.shortName.isEmpty() ? plane.shortName : "No Callsign");
+
+        // plane from -> to airports
+        ((TextView) findViewById(R.id.planeFrom)).setText(!plane.getDestination().fromShort.isEmpty() ? plane.getDestination().fromShort : "N/a");
+        ((TextView) findViewById(R.id.planeTo)).setText(!plane.getDestination().toShort.isEmpty() ? plane.getDestination().toShort : "N/a");
+
+        ((TextView) findViewById(R.id.arrivalTime)).setText(plane.getDestination().getArrivalTime());
+
+    }
+
+    public void setOpenedPanelData() {
+        if (mCurrentFocusedPlaneMarkerIndex == -1) return;
+
+        Plane plane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
+
+        // plane name and airline name
+        ((TextView) findViewById(R.id.anchoredPanelPlaneName)).setText(plane.getFullName());
+        ((TextView) findViewById(R.id.anchoredPanelAirlineName)).setText(plane.getAirlineName());
+
+        // plane from -> to airports
+        ((TextView) findViewById(R.id.anchoredPanelFromCity)).setText(plane.getDestination().fromFullCity);
+        ((TextView) findViewById(R.id.anchoredPanelToCity)).setText(plane.getDestination().toFullCity);
+
+        ((TextView) findViewById(R.id.anchoredPanelFromAirport)).setText(plane.getDestination().fromFullAirport);
+        ((TextView) findViewById(R.id.anchoredPanelToAirport)).setText(plane.getDestination().toFullAirport);
+
+        if (plane.getPlaneImage() != null && plane.getPlaneImage().first != null)
+            mPlaneImage.setImageBitmap(plane.getPlaneImage().first);
+
+    }
+
+
+    //
+    // MARK: volley response listeners
+    //
+
+    private void setupChart(LineChart chart, LineData data, int color) {
+
+        // no description text
+        chart.setDescription("");
+        chart.setNoDataTextDescription("You need to provide data for the chart.");
+
+        // enable / disable grid background
+        chart.setDrawGridBackground(false);
+
+        // enable touch gestures
+        chart.setTouchEnabled(true);
+
+        // enable scaling and dragging
+        chart.setDragEnabled(true);
+        chart.setScaleEnabled(true);
+
+        // if disabled, scaling can be done on x- and y-axis separately
+        chart.setPinchZoom(false);
+
+        chart.setBackgroundColor(color);
+
+        chart.setViewPortOffsets(50, 20, 50, 0);
+
+        // add data
+        chart.setData(data);
+
+        if (data.getDataSetByIndex(0).getValueCount() >= Constants.MIN_GRAPH_POINTS) {
+            chart.setVisibleXRange(Constants.MIN_GRAPH_POINTS);
+            chart.moveViewToX(data.getDataSetByIndex(0).getValueCount() - Constants.MIN_GRAPH_POINTS);
+        }
+
+        // get the legend (only possible after setting data)
+        Legend l = chart.getLegend();
+        l.setEnabled(false);
+
+        chart.getAxisLeft().setEnabled(false);
+        chart.getAxisRight().setEnabled(false);
+        chart.getXAxis().setEnabled(false);
+
+        chart.getAxisLeft().setStartAtZero(false);
+
+        // animate calls invalidate()...
+        chart.animateX(2500);
+    }
+
+    @Nullable
+    private LineData getPlaneAltitudeData() {
+
+        if (mCurrentFocusedPlaneMarkerIndex == -1)
+            return null;
+
+        ArrayList<Float> altitudeSet = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getAltitudeDataSet();
+
+        ArrayList<String> xVals = new ArrayList<>();
+
+        for (int i = 0; i < altitudeSet.size(); i++)
+            xVals.add(i + "");
+
+        ArrayList<Entry> yVals = new ArrayList<>();
+
+        for (int i = 0; i < altitudeSet.size(); i++) {
+            float val = altitudeSet.get(i);
+            yVals.add(new Entry(val, i));
+        }
+
+        LineDataSet set = new LineDataSet(yVals, "Altitude");
+//        set.setFillAlpha(110);
+//        set.setFillColor(Color.RED);
+
+        set.setLineWidth(1.75f);
+        set.setCircleSize(3f);
+        set.setColor(Color.WHITE);
+        set.setCircleColor(Color.WHITE);
+        set.setHighLightColor(Color.WHITE);
+        set.setValueTextColor(Color.WHITE);
+        set.setDrawValues(true);
+
+        ArrayList<LineDataSet> dataSets = new ArrayList<>();
+        dataSets.add(set); // add the datasets
+
+        // create a data object with the datasets
+        return new LineData(xVals, dataSets);
+
+    }
+
 
     //
     // MARK: runnables
     //
 
-    Runnable fetchData = new Runnable() {
-        @Override
-        public void run() {
-            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
-            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
-            String reqUrl = Constants.BASE_URL + String.format(
-                    Constants.OPTIONS_FORMAT,
-                    north_west.latitude + "",
-                    south_east.latitude + "",
-                    north_west.longitude + "",
-                    south_east.longitude + "");
+    @Nullable
+    private LineData getPlaneSpeedData() {
 
-            // TODO: add error listener
-            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
-            PlaneApplication.getInstance().getRequestQueue().add(request);
+        if (mCurrentFocusedPlaneMarkerIndex == -1)
+            return null;
+
+        ArrayList<Float> speedDataSet = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getSpeedDataSet();
+
+        ArrayList<String> xVals = new ArrayList<>();
+
+        for (int i = 0; i < speedDataSet.size(); i++)
+            xVals.add(i + "");
+
+        ArrayList<Entry> yVals = new ArrayList<>();
+
+        for (int i = 0; i < speedDataSet.size(); i++) {
+            float val = speedDataSet.get(i);
+            yVals.add(new Entry(val, i));
         }
-    };
+
+        LineDataSet set = new LineDataSet(yVals, "Speed");
+
+        set.setLineWidth(1.75f);
+        set.setCircleSize(3f);
+        set.setColor(Color.WHITE);
+        set.setCircleColor(Color.WHITE);
+        set.setHighLightColor(Color.WHITE);
+        set.setValueTextColor(Color.WHITE);
+        set.setDrawValues(true);
+
+        ArrayList<LineDataSet> dataSets = new ArrayList<>();
+        dataSets.add(set); // add the datasets
+
+        // create a data object with the datasets
+        return new LineData(xVals, dataSets);
+
+    }
 
 
 }

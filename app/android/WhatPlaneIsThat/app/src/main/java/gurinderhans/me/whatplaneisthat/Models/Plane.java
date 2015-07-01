@@ -22,15 +22,17 @@ public class Plane {
 
     @Nullable
     private String fullName;
+
     @Nullable
     private String airlineName;
+
     @Nullable
     private LatLng planePos;
 
     private float rotation;
 
-    private ArrayList<Float> altitude = new ArrayList<>(),
-            speed = new ArrayList<>();
+    private ArrayList<Float> altitude = new ArrayList<>();
+    private ArrayList<Float> speed = new ArrayList<>();
 
 
     @Nullable
@@ -49,8 +51,90 @@ public class Plane {
         this.destination = planeBuilder.dest;
     }
 
+    @Nullable
+    public LatLng getPlanePos() {
+        return planePos;
+    }
+
+    //
+    // setters & getters
+    //
+
+    public void setPlanePos(@Nullable LatLng planePos) {
+        this.planePos = planePos;
+    }
+
+    public float getRotation() {
+        return rotation;
+    }
+
+    public void setRotation(float rotation) {
+        this.rotation = rotation;
+    }
+
+    @Nullable
+    public Destination getDestination() {
+        return destination;
+    }
+
+    public void setDestination(@Nullable Destination destination) {
+        this.destination = destination;
+    }
+
+    public String getFullName() {
+        return fullName != null && !fullName.isEmpty() ? fullName : (!shortName.isEmpty() ? shortName : "No CallSign");
+    }
+
+    public void setFullName(@Nullable String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getAirlineName() {
+        return airlineName != null && !airlineName.isEmpty() ? airlineName : "Unknown Airlines";
+    }
+
+    public void setAirlineName(@Nullable String airlineName) {
+        this.airlineName = airlineName;
+    }
+
+    @Nullable
+    public Pair<Bitmap, Integer> getPlaneImage() {
+        return planeImage;
+    }
+
+    public void setPlaneImage(@Nullable Pair<Bitmap, Integer> planeImage) {
+        this.planeImage = planeImage;
+    }
+
+    public float getSpeed() {
+        // TODO: index out of bounds exception ?
+        return speed.get(speed.size() - 1);
+    }
+
+    public void setSpeed(float speed) {
+        this.speed.add(speed);
+    }
+
+    public ArrayList<Float> getSpeedDataSet() {
+        return speed;
+    }
+
+    public float getAltitude() {
+        // TODO: index out of bounds exception ?
+        return altitude.get(altitude.size() - 1);
+    }
+
+    public void setAltitude(float altitude) {
+        this.altitude.add(altitude);
+    }
+
+    public ArrayList<Float> getAltitudeDataSet() {
+        return altitude;
+    }
+
     public static class Builder {
-        private String key = "", shortName = "";
+        private String key = "";
+        private String shortName = "";
         private LatLng planePos;
         private float rotation;
         private Destination dest;
@@ -84,81 +168,5 @@ public class Plane {
             return new Plane(this);
         }
 
-    }
-
-    //
-    // setters & getters
-    //
-
-    public LatLng getPlanePos() {
-        return planePos;
-    }
-
-    public void setPlanePos(LatLng planePos) {
-        this.planePos = planePos;
-    }
-
-    public float getRotation() {
-        return rotation;
-    }
-
-    public void setRotation(float rotation) {
-        this.rotation = rotation;
-    }
-
-    public Destination getDestination() {
-        return destination;
-    }
-
-    public void setDestination(Destination destination) {
-        this.destination = destination;
-    }
-
-    public String getFullName() {
-        return !fullName.isEmpty() ? fullName : !shortName.isEmpty() ? shortName : "No CallSign";
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getAirlineName() {
-        return !airlineName.isEmpty() ? airlineName : "Unknown Airlines";
-    }
-
-    public void setAirlineName(String airlineName) {
-        this.airlineName = airlineName;
-    }
-
-    public Pair<Bitmap, Integer> getPlaneImage() {
-        return planeImage;
-    }
-
-    public void setPlaneImage(Pair<Bitmap, Integer> planeImage) {
-        this.planeImage = planeImage;
-    }
-
-    public float getSpeed() {
-        return speed.get(speed.size() - 1);
-    }
-
-    public ArrayList<Float> getSpeedDataSet() {
-        return speed;
-    }
-
-    public void setSpeed(float speed) {
-        this.speed.add(speed);
-    }
-
-    public float getAltitude() {
-        return altitude.get(altitude.size() - 1);
-    }
-
-    public ArrayList<Float> getAltitudeDataSet() {
-        return altitude;
-    }
-
-    public void setAltitude(float altitude) {
-        this.altitude.add(altitude);
     }
 }

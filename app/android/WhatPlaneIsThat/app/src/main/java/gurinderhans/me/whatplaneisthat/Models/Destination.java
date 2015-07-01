@@ -1,43 +1,44 @@
 package gurinderhans.me.whatplaneisthat.Models;
 
-import android.support.annotation.Nullable;
-
 import com.google.android.gms.maps.model.LatLng;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import gurinderhans.me.whatplaneisthat.Constants;
 
 /**
  * Created by ghans on 6/24/15.
  */
 public class Destination {
 
-    public final String toShort, fromShort;
-    public final String toFullCity, fromFullCity;
-    public final String toFullAirport, fromFullAirport;
+    public final String toShort;
+    public final String fromShort;
+    public final String toFullCity;
+    public final String fromFullCity;
+    public final String toFullAirport;
+    public final String fromFullAirport;
 
-    @Nullable
     public final LatLng destTo;
-
-    @Nullable
     public final LatLng destFrom;
 
-    private final long departureTime, arrivalTime;
+    private final long departureTime;
+    private final long arrivalTime;
 
     private Destination(Builder destBuilder) {
+
         this.toShort = destBuilder.toShort;
         this.fromShort = destBuilder.fromShort;
 
-
-        // split to get city and airport name
+        // split to get city and airport name, else assign unknown value
 
         String[] toDestSplit = destBuilder.toFull.split(",");
         if (toDestSplit.length == 2) {
             this.toFullCity = toDestSplit[0].trim();
             this.toFullAirport = toDestSplit[1].trim();
         } else {
-            this.toFullCity = "N/a";
-            this.toFullAirport = "N/a";
+            this.toFullCity = Constants.UNKNOWN_VALUE;
+            this.toFullAirport = Constants.UNKNOWN_VALUE;
         }
 
         String[] fromDestSplit = destBuilder.fromFull.split(",");
@@ -45,8 +46,8 @@ public class Destination {
             this.fromFullCity = fromDestSplit[0].trim();
             this.fromFullAirport = fromDestSplit[1].trim();
         } else {
-            this.fromFullCity = "N/a";
-            this.fromFullAirport = "N/a";
+            this.fromFullCity = Constants.UNKNOWN_VALUE;
+            this.fromFullAirport = Constants.UNKNOWN_VALUE;
         }
 
         this.departureTime = destBuilder.departureTime;
@@ -67,6 +68,7 @@ public class Destination {
     }
 
     public static class Builder {
+
         private String fromShort = "";
         private String toShort = "";
 
