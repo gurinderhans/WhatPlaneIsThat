@@ -81,33 +81,22 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     SensorManager mSensorManager;
     LocationManager mLocationManager;
-
-    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
+    GoogleMap mMap;
     LatLng mUserLocation;
     Marker mUserMarker;
     GroundOverlay mPlaneVisibilityCircle;
     @Nullable
     Polyline mCurrentDrawnPolyline; // current drawn polyline
-
     // main activity views
     ImageButton mLockCameraToUserLocation;
     SlidingUpPanelLayout mSlidingUpPanelLayout;
     ImageView mPlaneImage;
-
     // sliding panel views for different states
     View mCollapsedView;
     View mAnchoredView;
-
     // graph charts
     LineChart mAltitudeLineChart;
     LineChart mSpeedLineChart;
-
-
-    //
-    // MARK: volley response listeners
-    //
-
-
     Response.Listener<JSONObject> onFetchedPlaneInfo = new Response.Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
@@ -229,6 +218,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
     };
 
+
+    //
+    // MARK: volley response listeners
+    //
     Response.Listener<JSONObject> onFetchedAllPlanes = new Response.Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
@@ -311,12 +304,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             mHandler.postDelayed(fetchData, 10000);
         }
     };
-
-
-    //
-    // MARK: runnables
-    //
-
     Runnable fetchData = new Runnable() {
         @Override
         public void run() {
