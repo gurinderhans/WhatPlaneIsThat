@@ -1,6 +1,7 @@
 package gurinderhans.me.whatplaneisthat.Models;
 
 import android.graphics.Bitmap;
+import android.support.annotation.Nullable;
 import android.util.Pair;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -19,9 +20,11 @@ public class Plane {
 
     public final String shortName;
 
+    @Nullable
     private String fullName;
+    @Nullable
     private String airlineName;
-
+    @Nullable
     private LatLng planePos;
 
     private float rotation;
@@ -29,8 +32,11 @@ public class Plane {
     private ArrayList<Float> altitude = new ArrayList<>(),
             speed = new ArrayList<>();
 
+
+    @Nullable
     private Destination destination;
 
+    @Nullable
     private Pair<Bitmap, Integer> planeImage;
 
 

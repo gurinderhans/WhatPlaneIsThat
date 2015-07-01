@@ -11,6 +11,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.util.Pair;
@@ -83,6 +84,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     LatLng mUserLocation;
     Marker mUserMarker;
     GroundOverlay mPlaneVisibilityCircle;
+
+    @Nullable
     Polyline mCurrentDrawnPolyline; // current drawn polyline
 
     // main activity views
@@ -273,8 +276,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         if (mCurrentFocusedPlaneMarkerIndex != -1) {
 
-            setupChart(mAltitudeLineChart, getPlaneAltitudeData(), Color.rgb(89, 199, 250));
-            setupChart(mSpeedLineChart, getPlaneSpeedData(), Color.rgb(250, 104, 104));
+            LineData planeAltitudeData = getPlaneAltitudeData();
+            LineData planeSpeedData = getPlaneSpeedData();
+
+            if (planeAltitudeData != null)
+                setupChart(mAltitudeLineChart, planeAltitudeData, Color.rgb(89, 199, 250));
+
+            if (planeSpeedData != null)
+                setupChart(mSpeedLineChart, planeSpeedData, Color.rgb(250, 104, 104));
 
             Plane oSelectedPlane = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first;
 
@@ -561,6 +570,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         chart.animateX(2500);
     }
 
+    @Nullable
     private LineData getPlaneAltitudeData() {
 
         if (mCurrentFocusedPlaneMarkerIndex == -1)
@@ -600,6 +610,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     }
 
+    @Nullable
     private LineData getPlaneSpeedData() {
 
         if (mCurrentFocusedPlaneMarkerIndex == -1)
@@ -651,6 +662,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             for (Pair<Plane, Marker> markerPair : mPlaneMarkers)
                 markerPair.second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
             mPlaneImage.setImageResource(R.drawable.transparent);
+
             if (mCurrentDrawnPolyline != null)
                 mCurrentDrawnPolyline.remove();
 

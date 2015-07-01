@@ -1,5 +1,7 @@
 package gurinderhans.me.whatplaneisthat.Models;
 
+import android.support.annotation.Nullable;
+
 import com.google.android.gms.maps.model.LatLng;
 
 import java.text.SimpleDateFormat;
@@ -13,7 +15,13 @@ public class Destination {
     public final String toShort, fromShort;
     public final String toFullCity, fromFullCity;
     public final String toFullAirport, fromFullAirport;
-    public final LatLng destTo, destFrom;
+
+    @Nullable
+    public final LatLng destTo;
+
+    @Nullable
+    public final LatLng destFrom;
+
     private final long departureTime, arrivalTime;
 
     private Destination(Builder destBuilder) {
