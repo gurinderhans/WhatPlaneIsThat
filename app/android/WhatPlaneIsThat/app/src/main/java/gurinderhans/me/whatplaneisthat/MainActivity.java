@@ -13,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
@@ -58,7 +57,8 @@ import java.util.List;
 import gurinderhans.me.whatplaneisthat.Models.Destination;
 import gurinderhans.me.whatplaneisthat.Models.Plane;
 
-public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener, OnMarkerClickListener, SlidingUpPanelLayout.PanelSlideListener {
+public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener,
+        OnMarkerClickListener, SlidingUpPanelLayout.PanelSlideListener {
 
     // TODO: Estimate plane location and make it move in "realtime"
     // TODO: use plane speed to make planes move in real-time and then adjust location on new HTTP req.
@@ -73,47 +73,41 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     int mCurrentFocusedPlaneMarkerIndex = -1;
     List<Pair<Plane, Marker>> mPlaneMarkers = new ArrayList<>();
 
-
     boolean followUser = false;
     boolean cameraAnimationFinished = false;
+    boolean mPanelInExpandedStateNow = false;
+
+    float mPanelPrevSlideValue = 0;
 
     SensorManager mSensorManager;
     LocationManager mLocationManager;
+
+    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     LatLng mUserLocation;
     Marker mUserMarker;
     GroundOverlay mPlaneVisibilityCircle;
     @Nullable
     Polyline mCurrentDrawnPolyline; // current drawn polyline
+
     // main activity views
     ImageButton mLockCameraToUserLocation;
     SlidingUpPanelLayout mSlidingUpPanelLayout;
     ImageView mPlaneImage;
+
     // sliding panel views for different states
     View mCollapsedView;
     View mAnchoredView;
+
     // graph charts
     LineChart mAltitudeLineChart;
     LineChart mSpeedLineChart;
-    boolean expandedStateNow = false;
-    float prevVal = 0;
-    Runnable fetchData = new Runnable() {
-        @Override
-        public void run() {
-            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
-            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
-            String reqUrl = Constants.BASE_URL + String.format(
-                    Constants.OPTIONS_FORMAT,
-                    north_west.latitude + "",
-                    south_east.latitude + "",
-                    north_west.longitude + "",
-                    south_east.longitude + "");
 
-            // TODO: add error listener
-            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
-            PlaneApplication.getInstance().getRequestQueue().add(request);
-        }
-    };
-    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
+
+    //
+    // MARK: volley response listeners
+    //
+
+
     Response.Listener<JSONObject> onFetchedPlaneInfo = new Response.Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
@@ -235,10 +229,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
     };
 
-
-    //
-    // MARK: location manager methods
-    //
     Response.Listener<JSONObject> onFetchedAllPlanes = new Response.Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
@@ -322,6 +312,29 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
     };
 
+
+    //
+    // MARK: runnables
+    //
+
+    Runnable fetchData = new Runnable() {
+        @Override
+        public void run() {
+            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
+            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
+            String reqUrl = Constants.BASE_URL + String.format(
+                    Constants.OPTIONS_FORMAT,
+                    north_west.latitude + "",
+                    south_east.latitude + "",
+                    north_west.longitude + "",
+                    south_east.longitude + "");
+
+            // TODO: add error listener
+            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
+            PlaneApplication.getInstance().getRequestQueue().add(request);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -402,11 +415,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mSensorManager.unregisterListener(this);
     }
 
-
-    //
-    // MARK: sensor events
-    //
-
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_MOVE) {
@@ -416,6 +424,28 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
         return super.dispatchTouchEvent(ev);
     }
+
+
+    //
+    // MARK: sensor events
+    //
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        // get the angle around the z-axis rotated
+        float degree = Math.round(event.values[0]);
+        mUserMarker.setRotation(degree);
+    }
+
+
+    //
+    // MARK: location manager methods
+    //
+
 
     @Override
     public void onLocationChanged(Location location) {
@@ -448,41 +478,22 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     }
 
-
-    //
-    // MARK: marker click listener
-    //
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        Log.i(TAG, "status changed of: " + provider + " to: " + status + ", extras: " + extras);
-    }
-
-
-    //
-    // MARK: Pane slide listener
-    //
-
     @Override
     public void onProviderEnabled(String provider) {
-        Log.i(TAG, "provider enabled: " + provider);
     }
 
     @Override
     public void onProviderDisabled(String provider) {
-        Log.i(TAG, "provider disabled: " + provider);
     }
 
     @Override
-    public void onSensorChanged(SensorEvent event) {
-        // get the angle around the z-axis rotated
-        float degree = Math.round(event.values[0]);
-        mUserMarker.setRotation(degree);
+    public void onStatusChanged(String provider, int status, Bundle extras) {
     }
 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-    }
+
+    //
+    // MARK: marker click listener
+    //
 
     @Override
     public boolean onMarkerClick(Marker marker) {
@@ -516,6 +527,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         return true;
     }
 
+
+    //
+    // MARK: Pane slide listener
+    //
+
     @Override
     public void onPanelSlide(View view, float v) {
         final float scale = getResources().getDisplayMetrics().density;
@@ -525,8 +541,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         float transitiondp = (transitionPixel - 0.5f) / scale;
 
         // going up and state hasn't been changed
-        if (v - prevVal > 0 && !expandedStateNow) {
-            expandedStateNow = true;
+        if (v - mPanelPrevSlideValue > 0 && !mPanelInExpandedStateNow) {
+            mPanelInExpandedStateNow = true;
             collapsedToOpened(100l);
             setOpenedPanelData();
         }
@@ -539,13 +555,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         // bring back the panel short view
         openedToCollapsed(100l);
         setCollapsedPanelData();
-        expandedStateNow = false;
+        mPanelInExpandedStateNow = false;
     }
-
-
-    //
-    // MARK: panel view transitions
-    //
 
     @Override
     public void onPanelExpanded(View view) {
@@ -555,14 +566,54 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     public void onPanelAnchored(View view) {
     }
 
+    @Override
+    public void onPanelHidden(View view) {
+    }
+
 
     //
     // MARK: custom methods
     //
 
-    @Override
-    public void onPanelHidden(View view) {
+    private void setUpMapIfNeeded() {
+        // Do a null check to confirm that we have not already instantiated the map.
+        if (mMap == null) {
+            // Try to obtain the map from the SupportMapFragment.
+            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
+                    .getMap();
+            // Check if we were successful in obtaining the map.
+            if (mMap != null) {
+                setUpMap();
+            }
+        }
     }
+
+    private void setUpMap() {
+
+        // user marker
+        mUserMarker = mMap.addMarker(new MarkerOptions().position(mUserLocation)
+                        .icon(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_marker, -1, -1)))
+                        .rotation(0f)
+                        .flat(true)
+                        .anchor(0.5f, 0.5f)
+        );
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, 12f));
+
+        // user visibility circle
+        mPlaneVisibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_visibility, -1, -1)))
+                .anchor(0.5f, 0.5f)
+                .position(mUserLocation, 500000f));
+
+        // hide the marker toolbar - the two buttons on the bottom right that go to google maps
+        mMap.getUiSettings().setMapToolbarEnabled(false);
+
+        // marker click listener
+        mMap.setOnMarkerClickListener(this);
+
+    }
+
+    // MARK: panel view transitions
 
     private void openedToCollapsed(final long duration) {
 
@@ -627,49 +678,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mCollapsedView.startAnimation(animation);
     }
 
-    private void setUpMapIfNeeded() {
-        // Do a null check to confirm that we have not already instantiated the map.
-        if (mMap == null) {
-            // Try to obtain the map from the SupportMapFragment.
-            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
-                    .getMap();
-            // Check if we were successful in obtaining the map.
-            if (mMap != null) {
-                setUpMap();
-            }
-        }
-    }
-
-    private void setUpMap() {
-
-        // user marker
-        mUserMarker = mMap.addMarker(new MarkerOptions().position(mUserLocation)
-                        .icon(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_marker, -1, -1)))
-                        .rotation(0f)
-                        .flat(true)
-                        .anchor(0.5f, 0.5f)
-        );
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, 12f));
-
-        // user visibility circle
-        mPlaneVisibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_visibility, -1, -1)))
-                .anchor(0.5f, 0.5f)
-                .position(mUserLocation, 500000f));
-
-        // hide the marker toolbar - the two buttons on the bottom right that go to google maps
-        mMap.getUiSettings().setMapToolbarEnabled(false);
-
-        // marker click listener
-        mMap.setOnMarkerClickListener(this);
-
-    }
-
-
-    //
-    // MARK: line chart
-    //
-
     public void updateSlidingPane() {
         switch (mSlidingUpPanelLayout.getPanelState()) {
             case COLLAPSED:
@@ -724,10 +732,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     }
 
-
-    //
-    // MARK: volley response listeners
-    //
+    // MARK: line chart
 
     private void setupChart(LineChart chart, LineData data, int color) {
 
@@ -814,11 +819,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     }
 
-
-    //
-    // MARK: runnables
-    //
-
     @Nullable
     private LineData getPlaneSpeedData() {
 
@@ -856,6 +856,5 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         return new LineData(xVals, dataSets);
 
     }
-
 
 }
