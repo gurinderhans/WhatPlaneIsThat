@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
@@ -79,6 +80,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     boolean followUser = false;
     boolean cameraAnimationFinished = false;
     boolean mPanelInExpandedStateNow = false;
+
+    SlidingUpPanelLayout.PanelState mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
 
     float mPanelPrevSlideValue = 0;
 
@@ -552,11 +555,22 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         float transitiondp = (transitionPixel - 0.5f) / scale;
 
         // going up and state hasn't been changed
-        if (v - mPanelPrevSlideValue > 0 && !mPanelInExpandedStateNow) {
-            mPanelInExpandedStateNow = true;
+        if (v - mPanelPrevSlideValue > 0 && mPanelState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
+            mPanelState = SlidingUpPanelLayout.PanelState.ANCHORED;
             collapsedToOpened(100l);
             setOpenedPanelData();
+            mPanelPrevSlideValue = v;
         }
+
+        if (v - mPanelPrevSlideValue < 0 && mPanelState != SlidingUpPanelLayout.PanelState.COLLAPSED) {
+            mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
+            openedToCollapsed(100l);
+            setCollapsedPanelData();
+            mPanelPrevSlideValue = v;
+        }
+
+        Log.i(TAG, "view val: " + v);
+
 
         mPlaneImage.setTranslationY(((transitiondp <= Constants.MAX_TRANSLATE_DP) ? (Constants.MAX_TRANSLATE_DP * scale + 0.5f) : transitionPixel));
     }
@@ -564,9 +578,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     @Override
     public void onPanelCollapsed(View view) {
         // bring back the panel short view
-        openedToCollapsed(100l);
-        setCollapsedPanelData();
-        mPanelInExpandedStateNow = false;
+//        openedToCollapsed(100l);
+//        setCollapsedPanelData();
+        mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
     }
 
     @Override
@@ -575,6 +589,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     @Override
     public void onPanelAnchored(View view) {
+        mPanelState = SlidingUpPanelLayout.PanelState.ANCHORED;
     }
 
     @Override
