@@ -2,6 +2,8 @@ package gurinderhans.me.whatplaneisthat;
 
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -9,6 +11,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
@@ -97,6 +100,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     // graph charts
     LineChart mAltitudeLineChart;
     LineChart mSpeedLineChart;
+
+    // data response listeners
     Response.Listener<JSONObject> onFetchedPlaneInfo = new Response.Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
@@ -186,11 +191,21 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             imgLoader.get(imgUrl, new ImageLoader.ImageListener() {
                 @Override
                 public void onResponse(ImageLoader.ImageContainer response, boolean isImmediate) {
-                    Bitmap bmp = response.getBitmap();
+                    final Bitmap bmp = response.getBitmap();
                     if (bmp != null) {
                         // TODO: fade in animation
-                        mPlaneImage.setImageBitmap(bmp);
-                        mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setPlaneImage(Pair.create(bmp, Tools.getBitmapColor(bmp)));
+
+                        // bitmap to drawable conversion
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Drawable img = new BitmapDrawable(null, bmp);
+                                mPlaneImage.setImageDrawable(img);
+
+                                int bmpColor = Tools.getBitmapColor(bmp);
+                                mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setPlaneImage(Pair.create(img, bmpColor));
+                            }
+                        });
                     }
                 }
 
@@ -326,6 +341,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // setting the status bar
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+
+        makeStatusBarTransparent();
 
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -696,6 +719,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         ((TextView) findViewById(R.id.arrivalTime)).setText(plane.getDestination().getArrivalTime());
 
+        makeStatusBarTransparent();
+
     }
 
     public void setOpenedPanelData() {
@@ -714,8 +739,16 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         ((TextView) findViewById(R.id.anchoredPanelFromAirport)).setText(plane.getDestination().fromFullAirport);
         ((TextView) findViewById(R.id.anchoredPanelToAirport)).setText(plane.getDestination().toFullAirport);
 
-        if (plane.getPlaneImage() != null && plane.getPlaneImage().first != null)
-            mPlaneImage.setImageBitmap(plane.getPlaneImage().first);
+
+        Pair<Drawable, Integer> planeImage = plane.getPlaneImage();
+        if (planeImage != null) {
+
+            if (planeImage.second != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                getWindow().setStatusBarColor(planeImage.second);
+
+            if (planeImage.first != null)
+                mPlaneImage.setImageDrawable(planeImage.first);
+        }
 
     }
 
@@ -787,8 +820,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         }
 
         LineDataSet set = new LineDataSet(yVals, "Altitude");
-//        set.setFillAlpha(110);
-//        set.setFillColor(Color.RED);
 
         set.setLineWidth(1.75f);
         set.setCircleSize(3f);
@@ -842,6 +873,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         // create a data object with the datasets
         return new LineData(xVals, dataSets);
 
+    }
+
+    public void makeStatusBarTransparent() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            getWindow().setStatusBarColor(getResources().getColor(R.color.transparent_status_bar_color));
     }
 
 }

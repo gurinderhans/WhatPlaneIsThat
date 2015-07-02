@@ -6,4 +6,9 @@
 
     <color name="visibility_circle_color">#5199dc</color>
 
+    <color name="logo_color">#ff5451</color>
+    <color name="logo_color_dark">#b32c29</color>
+
+    <color name="transparent_status_bar_color">#4D000000</color>
+
 </resources>

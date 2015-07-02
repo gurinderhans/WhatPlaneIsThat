@@ -1,6 +1,7 @@
 package gurinderhans.me.whatplaneisthat.Models;
 
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.Nullable;
 import android.util.Pair;
 
@@ -39,7 +40,7 @@ public class Plane {
     private Destination destination;
 
     @Nullable
-    private Pair<Bitmap, Integer> planeImage;
+    private Pair<Drawable, Integer> planeImage;
 
 
     private Plane(Builder planeBuilder) {
@@ -98,11 +99,11 @@ public class Plane {
     }
 
     @Nullable
-    public Pair<Bitmap, Integer> getPlaneImage() {
+    public Pair<Drawable, Integer> getPlaneImage() {
         return planeImage;
     }
 
-    public void setPlaneImage(@Nullable Pair<Bitmap, Integer> planeImage) {
+    public void setPlaneImage(@Nullable Pair<Drawable, Integer> planeImage) {
         this.planeImage = planeImage;
     }
 
