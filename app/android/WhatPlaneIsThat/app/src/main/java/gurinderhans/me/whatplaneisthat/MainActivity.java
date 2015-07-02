@@ -348,7 +348,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 
-        makeStatusBarTransparent();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            getWindow().setStatusBarColor(getResources().getColor(R.color.transparent_status_bar_color));
 
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -719,7 +720,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         ((TextView) findViewById(R.id.arrivalTime)).setText(plane.getDestination().getArrivalTime());
 
-        makeStatusBarTransparent();
+//        makeStatusBarTransparent();
 
     }
 
@@ -743,8 +744,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         Pair<Drawable, Integer> planeImage = plane.getPlaneImage();
         if (planeImage != null) {
 
-            if (planeImage.second != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-                getWindow().setStatusBarColor(planeImage.second);
+//            if (planeImage.second != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+//                getWindow().setStatusBarColor(planeImage.second);
 
             if (planeImage.first != null)
                 mPlaneImage.setImageDrawable(planeImage.first);
@@ -873,11 +874,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         // create a data object with the datasets
         return new LineData(xVals, dataSets);
 
-    }
-
-    public void makeStatusBarTransparent() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-            getWindow().setStatusBarColor(getResources().getColor(R.color.transparent_status_bar_color));
     }
 
 }
