@@ -62,7 +62,7 @@ import gurinderhans.me.whatplaneisthat.Models.Destination;
 import gurinderhans.me.whatplaneisthat.Models.Plane;
 
 public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener,
-        OnMarkerClickListener, SlidingUpPanelLayout.PanelSlideListener {
+        OnMarkerClickListener, SlidingUpPanelLayout.PanelSlideListener, GoogleMap.OnMapClickListener {
 
     // TODO: Estimate plane location and make it move in "realtime"
     // TODO: use plane speed to make planes move in real-time and then adjust location on new HTTP req.
@@ -91,8 +91,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     LatLng mUserLocation;
     Marker mUserMarker;
     GroundOverlay mPlaneVisibilityCircle;
+
     @Nullable
     Polyline mCurrentDrawnPolyline; // current drawn polyline
+
     // main activity views
     ImageButton mLockCameraToUserLocation;
     SlidingUpPanelLayout mSlidingUpPanelLayout;
@@ -100,6 +102,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
     // sliding panel views for different states
     View mCollapsedView;
     View mAnchoredView;
+    View mNoPlaneSelectedView;
     // graph charts
     LineChart mAltitudeLineChart;
     LineChart mSpeedLineChart;
@@ -220,6 +223,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
             // set marker icon to SELECTED
             mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
+            mNoPlaneSelectedView.setVisibility(View.INVISIBLE);
 
             // draw new polyline
             try {
@@ -235,11 +239,23 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             updateSlidingPane();
         }
     };
+    Runnable fetchData = new Runnable() {
+        @Override
+        public void run() {
+            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
+            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
+            String reqUrl = Constants.BASE_URL + String.format(
+                    Constants.OPTIONS_FORMAT,
+                    north_west.latitude + "",
+                    south_east.latitude + "",
+                    north_west.longitude + "",
+                    south_east.longitude + "");
 
-
-    //
-    // MARK: volley response listeners
-    //
+            // TODO: add error listener
+            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
+            PlaneApplication.getInstance().getRequestQueue().add(request);
+        }
+    };
     Response.Listener<JSONObject> onFetchedAllPlanes = new Response.Listener<JSONObject>() {
         @Override
         public void onResponse(JSONObject response) {
@@ -322,23 +338,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             mHandler.postDelayed(fetchData, 10000);
         }
     };
-    Runnable fetchData = new Runnable() {
-        @Override
-        public void run() {
-            LatLng north_west = GeoLocation.boundingBox(mUserLocation, 315, Constants.SEARCH_RADIUS);
-            LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
-            String reqUrl = Constants.BASE_URL + String.format(
-                    Constants.OPTIONS_FORMAT,
-                    north_west.latitude + "",
-                    south_east.latitude + "",
-                    north_west.longitude + "",
-                    south_east.longitude + "");
-
-            // TODO: add error listener
-            JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
-            PlaneApplication.getInstance().getRequestQueue().add(request);
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -363,8 +362,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         mCollapsedView = findViewById(R.id.panelCollapsedView);
         mAnchoredView = findViewById(R.id.panelAnchoredView);
+        mNoPlaneSelectedView = findViewById(R.id.noPlaneSelectedView);
 
-        // hide all other panel views so only collapsed shows initially
+        // hide all other panel views so only prompt view shows
+        mCollapsedView.setVisibility(View.INVISIBLE);
         mAnchoredView.setVisibility(View.INVISIBLE);
 
         // get cached location
@@ -541,6 +542,28 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         return true;
     }
 
+    //
+    // MARK: map click listener
+    //
+
+    @Override
+    public void onMapClick(LatLng latLng) {
+        mNoPlaneSelectedView.setVisibility(View.VISIBLE);
+
+        // remove polyline
+        if (mCurrentDrawnPolyline != null)
+            mCurrentDrawnPolyline.remove();
+
+        // reset marker icons
+        for (Pair<Plane, Marker> pair : mPlaneMarkers) {
+            pair.second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
+        }
+
+        // clear image
+        mPlaneImage.setImageResource(R.drawable.transparent);
+        mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setPlaneImage(null);
+    }
+
 
     //
     // MARK: Pane slide listener
@@ -557,16 +580,16 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         // going up and state hasn't been changed
         if (v - mPanelPrevSlideValue > 0 && mPanelState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
             mPanelState = SlidingUpPanelLayout.PanelState.ANCHORED;
+            mPanelPrevSlideValue = v;
             collapsedToOpened(100l);
             setOpenedPanelData();
-            mPanelPrevSlideValue = v;
         }
 
         if (v - mPanelPrevSlideValue < 0 && mPanelState != SlidingUpPanelLayout.PanelState.COLLAPSED) {
             mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
+            mPanelPrevSlideValue = v;
             openedToCollapsed(100l);
             setCollapsedPanelData();
-            mPanelPrevSlideValue = v;
         }
 
         Log.i(TAG, "view val: " + v);
@@ -577,9 +600,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     @Override
     public void onPanelCollapsed(View view) {
-        // bring back the panel short view
-//        openedToCollapsed(100l);
-//        setCollapsedPanelData();
         mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
     }
 
@@ -636,6 +656,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         // marker click listener
         mMap.setOnMarkerClickListener(this);
+
+        mMap.setOnMapClickListener(this);
 
     }
 
@@ -735,8 +757,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         ((TextView) findViewById(R.id.arrivalTime)).setText(plane.getDestination().getArrivalTime());
 
-//        makeStatusBarTransparent();
-
+        mCollapsedView.setVisibility(View.VISIBLE);
     }
 
     public void setOpenedPanelData() {
@@ -757,14 +778,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 
         Pair<Drawable, Integer> planeImage = plane.getPlaneImage();
-        if (planeImage != null) {
-
-//            if (planeImage.second != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-//                getWindow().setStatusBarColor(planeImage.second);
-
-            if (planeImage.first != null)
-                mPlaneImage.setImageDrawable(planeImage.first);
-        }
+        if (planeImage != null && planeImage.first != null)
+            mPlaneImage.setImageDrawable(planeImage.first);
 
     }
 

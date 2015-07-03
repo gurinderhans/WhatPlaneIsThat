@@ -66,6 +66,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
+        <include
+            android:id="@+id/noPlaneSelectedView"
+            layout="@layout/no_plane_selected_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
     </RelativeLayout>
 
 </com.sothree.slidinguppanel.SlidingUpPanelLayout>
