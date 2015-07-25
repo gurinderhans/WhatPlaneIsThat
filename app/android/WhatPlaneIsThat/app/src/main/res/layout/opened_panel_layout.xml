@@ -9,7 +9,7 @@
         android:layout_height="wrap_content"
         android:background="@color/logo_color"
         android:orientation="vertical"
-        android:paddingBottom="10dp"
+        android:paddingBottom="@dimen/opened_panel_red_bar_padding_bottom"
         android:paddingEnd="15dp"
         android:paddingLeft="15dp"
         android:paddingRight="15dp"
@@ -22,30 +22,31 @@
             android:layout_height="wrap_content"
             android:text="XYZ Aircraft 789 W/ ABC Lines"
             android:textColor="@android:color/white"
-            android:textSize="18sp" />
+            android:textSize="@dimen/opened_panel_redbar_title_size" />
 
         <TextView
             android:id="@+id/anchoredPanelAirlineName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Abc Airlines Inc."
-            android:textColor="@android:color/white" />
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/opened_panel_redbar_subtitle_size" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="10dp"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="25dp"
+        android:layout_marginTop="15dp"
         android:orientation="horizontal">
 
         <ImageView
             android:layout_width="50dp"
             android:layout_height="120dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
             android:layout_marginRight="10dp"
-            android:src="@drawable/from_to" />
+            android:src="@drawable/from_to_image" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -65,13 +66,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Seattle"
-                    android:textSize="20sp" />
+                    android:textSize="@dimen/plane_from_to_title_text_size" />
 
                 <TextView
                     android:id="@+id/anchoredPanelFromAirport"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Seattle Tacoma International Airport" />
+                    android:text="Seattle Tacoma International Airport"
+                    android:textSize="@dimen/plane_from_to_subtitle_text_size" />
             </LinearLayout>
 
             <LinearLayout
@@ -86,66 +88,68 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Frankfurt"
-                    android:textSize="20sp" />
+                    android:textSize="@dimen/plane_from_to_title_text_size" />
 
                 <TextView
                     android:id="@+id/anchoredPanelToAirport"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Frankfurt Airport" />
+                    android:text="Frankfurt Airport"
+                    android:textSize="@dimen/plane_from_to_subtitle_text_size" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:orientation="horizontal">
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_marginBottom="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginRight="20dp"
+        android:orientation="vertical"
+        android:weightSum="1">
 
-        <ImageView
-            android:layout_width="50dp"
-            android:layout_height="150dp"
-            android:layout_marginEnd="5dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="5dp"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="10dp"
-            android:src="@drawable/up_down_arrow" />
-
-        <com.github.mikephil.charting.charts.LineChart
-            android:id="@+id/planeAltitudeChart"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="140dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="20dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginTop="20dp" />
-    </LinearLayout>
+            android:layout_height="-1dp"
+            android:layout_marginTop="20dp"
+            android:layout_weight="0.5"
+            android:orientation="horizontal">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+            <ImageView
+                android:layout_width="50dp"
+                android:layout_height="fill_parent"
+                android:layout_marginLeft="10dp"
+                android:layout_marginStart="10dp"
+                android:src="@drawable/altitude" />
 
-        <ImageView
-            android:layout_width="50dp"
-            android:layout_height="140dp"
-            android:layout_marginEnd="5dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="5dp"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="40dp"
-            android:src="@drawable/speed" />
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/planeAltitudeChart"
+                android:layout_width="match_parent"
+                android:layout_height="fill_parent"
+                android:layout_marginLeft="10dp"
+                android:layout_marginStart="10dp" />
+        </LinearLayout>
 
-        <com.github.mikephil.charting.charts.LineChart
-            android:id="@+id/planeSpeedChart"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="150dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="20dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginTop="20dp" />
+            android:layout_height="-1dp"
+            android:layout_marginTop="20dp"
+            android:layout_weight="0.5">
+
+            <ImageView
+                android:layout_width="50dp"
+                android:layout_height="fill_parent"
+                android:layout_marginLeft="10dp"
+                android:layout_marginStart="10dp"
+                android:src="@drawable/speed" />
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/planeSpeedChart"
+                android:layout_width="match_parent"
+                android:layout_height="fill_parent"
+                android:layout_marginLeft="10dp"
+                android:layout_marginStart="10dp" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

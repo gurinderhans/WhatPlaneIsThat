@@ -2,6 +2,7 @@ package gurinderhans.me.whatplaneisthat;
 
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
@@ -16,8 +17,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 import android.util.Pair;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
@@ -79,7 +80,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     boolean followUser = false;
     boolean cameraAnimationFinished = false;
-    boolean mPanelInExpandedStateNow = false;
 
     SlidingUpPanelLayout.PanelState mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
 
@@ -370,7 +370,11 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         // get cached location
         Location cachedLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-        mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
+        if (cachedLocation != null) {
+            mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
+        } else {
+            mUserLocation = new LatLng(0, 0);
+        }
 
         mLockCameraToUserLocation.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -396,9 +400,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
         mSlidingUpPanelLayout.setPanelSlideListener(this);
 
         // set image initial position so it hides behind the panel
-        final float scale = getResources().getDisplayMetrics().density;
-        int pixels = (int) (230 * scale + 0.5f);
-        mPlaneImage.setTranslationY(pixels);
+        float translationVal = getResources().getDimensionPixelSize(R.dimen.plane_image_height);
+        mPlaneImage.setTranslationY(translationVal);
 
 
         mAltitudeLineChart = (LineChart) findViewById(R.id.planeAltitudeChart);
@@ -561,7 +564,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
         // clear image
         mPlaneImage.setImageResource(R.drawable.transparent);
-        mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setPlaneImage(null);
+        if (mCurrentFocusedPlaneMarkerIndex > -1)
+            mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setPlaneImage(null);
     }
 
 
@@ -571,11 +575,25 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
     @Override
     public void onPanelSlide(View view, float v) {
-        final float scale = getResources().getDisplayMetrics().density;
-        int pixels = (int) (230 * scale + 0.5f);
 
-        float transitionPixel = (-(v * 100 * 16.65f) + pixels);
-        float transitiondp = (transitionPixel - 0.5f) / scale;
+        // grab the screen height and do things relative to it
+        Point screenSize = new Point();
+        getWindowManager().getDefaultDisplay().getSize(screenSize);
+
+        // calculate a transition value for the image
+        float translationVal = -((screenSize.y * v) * 1.44f) + getResources().getDimensionPixelSize(R.dimen.plane_image_height);
+
+        // compute the transition value limiter
+        TypedValue outValue = new TypedValue();
+        getResources().getValue(R.integer.sliding_panel_anchor_point, outValue, true);
+        float maxVal = -(screenSize.y * outValue.getFloat() * 1.44f) + getResources().getDimensionPixelSize(R.dimen.plane_image_height);
+
+        // limit the transition value using the computed limiter
+        translationVal = translationVal < maxVal ? maxVal : translationVal;
+
+        // set translation value
+        mPlaneImage.setTranslationY(translationVal);
+
 
         // going up and state hasn't been changed
         if (v - mPanelPrevSlideValue > 0 && mPanelState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
@@ -585,6 +603,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             setOpenedPanelData();
         }
 
+        // if coming down and state not collapsed, set to collapsed to the collapsed layout doesn't show until
+        // its actually collapsed
         if (v - mPanelPrevSlideValue < 0 && mPanelState != SlidingUpPanelLayout.PanelState.COLLAPSED) {
             mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
             mPanelPrevSlideValue = v;
@@ -592,10 +612,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
             setCollapsedPanelData();
         }
 
-        Log.i(TAG, "view val: " + v);
-
-
-        mPlaneImage.setTranslationY(((transitiondp <= Constants.MAX_TRANSLATE_DP) ? (Constants.MAX_TRANSLATE_DP * scale + 0.5f) : transitionPixel));
     }
 
     @Override

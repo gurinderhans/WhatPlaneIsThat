@@ -44,11 +44,6 @@ public class Constants {
     public static final String KEY_PLANE_IMAGE_LARGE_URL = "image_large";
     public static final String KEY_PLANE_IMAGE_URL = "image";
 
-
-    // max dp that the image will go up
-    public static final float MAX_TRANSLATE_DP = -294.08267f;
-
-
     public static final int MIN_GRAPH_POINTS = 7;
 
 }

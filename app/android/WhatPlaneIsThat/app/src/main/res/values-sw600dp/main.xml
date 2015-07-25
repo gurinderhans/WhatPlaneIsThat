@@ -1,0 +1,18 @@
+<resources>
+    <bool name="isTablet">true</bool>
+    <dimen name="plane_image_height">444dp</dimen>
+
+    <item name="sliding_panel_anchor_point" format="float" type="integer">0.67</item>
+
+    <dimen name="opened_panel_red_bar_padding_bottom">15dp</dimen>
+    <dimen name="opened_panel_redbar_title_size">24sp</dimen>
+    <dimen name="opened_panel_redbar_subtitle_size">18sp</dimen>
+
+    <dimen name="graph_view_height">325dp</dimen>
+
+    <drawable name="from_to_image">@drawable/from_to</drawable>
+
+    <dimen name="plane_from_to_title_text_size">22sp</dimen>
+    <dimen name="plane_from_to_subtitle_text_size">16sp</dimen>
+
+</resources>
