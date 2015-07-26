@@ -1,1 +1,6 @@
 /build
+
+# ignore api key
+google_maps_api.xml
+
+
