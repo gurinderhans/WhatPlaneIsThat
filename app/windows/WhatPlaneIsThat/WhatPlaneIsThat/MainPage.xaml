@@ -5,9 +5,12 @@
     xmlns:local="using:WhatPlaneIsThat"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:map="using:Windows.UI.Xaml.Controls.Maps"
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-
+        <map:MapControl x:Name="Map"
+                        Loaded="Map_Loaded"
+                        MapServiceToken="ovwjh2JC2qHzLNULlHkR~kLLNLCd866gO9AdwQ2v8oQ~AhErYLAJJtkc0Rpn6zUIOPqkd3ehw4RpqHK9ufoLihMQO99X4Yu-AsytFDzYVfEO"/>
     </Grid>
 </Page>
