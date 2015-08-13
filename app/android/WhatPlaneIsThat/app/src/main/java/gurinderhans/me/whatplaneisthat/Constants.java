@@ -20,6 +20,7 @@ public class Constants {
 
     // each plane data url
     public static final String PLANE_DATA_URL = "http://lhr.data.fr24.com/_external/planedata_json.1.4.php?f=%s&format=2";
+
     // plane data keys
     public static final String KEY_PLANE_MAP_TRAIL = "trail";
     public static final String KEY_AIRCRAFT_NAME = "aircraft";

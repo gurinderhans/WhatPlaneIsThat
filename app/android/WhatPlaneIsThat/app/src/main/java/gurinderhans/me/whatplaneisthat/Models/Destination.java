@@ -4,126 +4,90 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import gurinderhans.me.whatplaneisthat.Constants;
+import java.util.Locale;
 
 /**
  * Created by ghans on 6/24/15.
  */
 public class Destination {
 
-    public final String toShort;
-    public final String fromShort;
-    public final String toFullCity;
-    public final String fromFullCity;
-    public final String toFullAirport;
-    public final String fromFullAirport;
+	public final String toShort;
+	public final String fromShort;
+	public String toFullCity;
+	public String fromFullCity;
+	public String toFullAirport;
+	public String fromFullAirport;
 
-    public final LatLng destTo;
-    public final LatLng destFrom;
+	public LatLng destTo;
+	public LatLng destFrom;
 
-    private final long departureTime;
-    private final long arrivalTime;
+	private long departureTime;
+	private long arrivalTime;
 
-    private Destination(Builder destBuilder) {
+	public Destination(String fromShort, String toShort) {
+		this.fromShort = fromShort;
+		this.toShort = toShort;
+	}
 
-        this.toShort = destBuilder.toShort;
-        this.fromShort = destBuilder.fromShort;
+	public String getToFullCity() {
+		return toFullCity;
+	}
 
-        // split to get city and airport name, else assign unknown value
+	public void setToFullCity(String toFullCity) {
+		this.toFullCity = toFullCity;
+	}
 
-        String[] toDestSplit = destBuilder.toFull.split(",");
-        if (toDestSplit.length == 2) {
-            this.toFullCity = toDestSplit[0].trim();
-            this.toFullAirport = toDestSplit[1].trim();
-        } else {
-            this.toFullCity = Constants.UNKNOWN_VALUE;
-            this.toFullAirport = Constants.UNKNOWN_VALUE;
-        }
+	public String getFromFullCity() {
+		return fromFullCity;
+	}
 
-        String[] fromDestSplit = destBuilder.fromFull.split(",");
-        if (fromDestSplit.length == 2) {
-            this.fromFullCity = fromDestSplit[0].trim();
-            this.fromFullAirport = fromDestSplit[1].trim();
-        } else {
-            this.fromFullCity = Constants.UNKNOWN_VALUE;
-            this.fromFullAirport = Constants.UNKNOWN_VALUE;
-        }
+	public void setFromFullCity(String fromFullCity) {
+		this.fromFullCity = fromFullCity;
+	}
 
-        this.departureTime = destBuilder.departureTime;
-        this.arrivalTime = destBuilder.arrivalTime;
+	public String getToFullAirport() {
+		return toFullAirport;
+	}
 
-        this.destTo = destBuilder.destTo;
-        this.destFrom = destBuilder.destFrom;
-    }
+	public void setToFullAirport(String toFullAirport) {
+		this.toFullAirport = toFullAirport;
+	}
 
-    public String getArrivalTime() {
-        return new SimpleDateFormat("h:mma").format(new Date(arrivalTime * 1000l)).toLowerCase();
-    }
+	public String getFromFullAirport() {
+		return fromFullAirport;
+	}
 
-    public String getDepartureTime() {
-        if (departureTime != 0l)
-            return new SimpleDateFormat("h:mma").format(new Date(arrivalTime * 1000l)).toLowerCase();
-        return "N/a";
-    }
+	public void setFromFullAirport(String fromFullAirport) {
+		this.fromFullAirport = fromFullAirport;
+	}
 
-    public static class Builder {
+	public LatLng getDestTo() {
+		return destTo;
+	}
 
-        private String fromShort = "";
-        private String toShort = "";
+	public void setDestTo(LatLng destTo) {
+		this.destTo = destTo;
+	}
 
-        private String fromFull = "";
-        private String toFull = "";
+	public LatLng getDestFrom() {
+		return destFrom;
+	}
 
-        private long departureTime;
-        private long arrivalTime;
+	public void setDestFrom(LatLng destFrom) {
+		this.destFrom = destFrom;
+	}
 
-        private LatLng destTo;
-        private LatLng destFrom;
+	public String getArrivalTime() {
+		if (arrivalTime != Long.MIN_VALUE)
+			return new SimpleDateFormat("h:mma", Locale.getDefault()).format(new Date(arrivalTime * 1000l)).toLowerCase();
 
+		return "N/a";
+	}
 
-        public Builder toShortName(String name) {
-            this.toShort = name;
-            return this;
-        }
+	public String getDepartureTime() {
+		if (departureTime != Long.MIN_VALUE)
+			return new SimpleDateFormat("h:mma", Locale.getDefault()).format(new Date(arrivalTime * 1000l)).toLowerCase();
 
-        public Builder fromShortName(String name) {
-            this.fromShort = name;
-            return this;
-        }
-
-        public Builder toFullName(String name) {
-            this.toFull = name;
-            return this;
-        }
-
-        public Builder fromFullName(String name) {
-            this.fromFull = name;
-            return this;
-        }
-
-        public Builder departureTime(long time) {
-            this.departureTime = time;
-            return this;
-        }
-
-        public Builder arrivalTime(long time) {
-            this.arrivalTime = time;
-            return this;
-        }
-
-        public Builder toCoords(LatLng pos) {
-            this.destTo = pos;
-            return this;
-        }
-
-        public Builder fromCoords(LatLng pos) {
-            this.destFrom = pos;
-            return this;
-        }
-
-        public Destination build() {
-            return new Destination(this);
-        }
-    }
+		return "N/a";
+	}
 }

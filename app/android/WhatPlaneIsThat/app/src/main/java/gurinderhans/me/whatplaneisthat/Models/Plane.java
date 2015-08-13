@@ -13,160 +13,129 @@ import java.util.ArrayList;
  */
 public class Plane {
 
-    protected static final String TAG = Plane.class.getSimpleName();
+	protected static final String TAG = Plane.class.getSimpleName();
 
-    // plane's unique identifier (used for fetching plane data from web and searching for plane in mem)
-    public final String keyIdentifier;
+	// plane's unique identifier (used for fetching plane data from web and searching for plane in mem.)
+	public final String keyIdentifier;
 
-    public final String shortName;
+	public String shortName;
 
-    @Nullable
-    private String fullName;
+	@Nullable
+	private String fullName;
 
-    @Nullable
-    private String airlineName;
+	@Nullable
+	private String airlineName;
 
-    @Nullable
-    private LatLng planePos;
+	@Nullable
+	private LatLng planePos;
 
-    private float rotation;
+	private double rotation;
 
-    private ArrayList<Float> altitude = new ArrayList<>();
-    private ArrayList<Float> speed = new ArrayList<>();
-
-
-    @Nullable
-    private Destination destination;
-
-    @Nullable
-    private Pair<Drawable, Integer> planeImage;
+	private ArrayList<Double> altitude = new ArrayList<>();
+	private ArrayList<Double> speed = new ArrayList<>();
 
 
-    private Plane(Builder planeBuilder) {
-        // copy plane values to plane
-        this.keyIdentifier = planeBuilder.key;
-        this.shortName = planeBuilder.shortName;
-        this.planePos = planeBuilder.planePos;
-        this.rotation = planeBuilder.rotation;
-        this.destination = planeBuilder.dest;
-    }
+	@Nullable
+	private Destination destination;
 
-    @Nullable
-    public LatLng getPlanePos() {
-        return planePos;
-    }
+	@Nullable
+	private Pair<Drawable, Integer> planeImage;
 
-    //
-    // setters & getters
-    //
 
-    public void setPlanePos(@Nullable LatLng planePos) {
-        this.planePos = planePos;
-    }
+	public Plane(String keyIdentifier) {
+		this.keyIdentifier = keyIdentifier;
+	}
 
-    public float getRotation() {
-        return rotation;
-    }
+	//
+	// setters & getters
+	//
 
-    public void setRotation(float rotation) {
-        this.rotation = rotation;
-    }
+	@Nullable
+	public LatLng getPlanePos() {
+		return planePos;
+	}
 
-    @Nullable
-    public Destination getDestination() {
-        return destination;
-    }
+	public void setPlanePos(@Nullable LatLng planePos) {
+		this.planePos = planePos;
+	}
 
-    public void setDestination(@Nullable Destination destination) {
-        this.destination = destination;
-    }
+	public void setShortName(String shortName) {
+		this.shortName = shortName;
+	}
 
-    public String getFullName() {
-        return fullName != null && !fullName.isEmpty() ? fullName : (!shortName.isEmpty() ? shortName : "No CallSign");
-    }
+	public String getShortName() {
+		return shortName;
+	}
 
-    public void setFullName(@Nullable String fullName) {
-        this.fullName = fullName;
-    }
+	public void setPosition(@Nullable LatLng planePos) {
+		this.planePos = planePos;
+	}
 
-    public String getAirlineName() {
-        return airlineName != null && !airlineName.isEmpty() ? airlineName : "Unknown Airlines";
-    }
+	public double getRotation() {
+		return rotation;
+	}
 
-    public void setAirlineName(@Nullable String airlineName) {
-        this.airlineName = airlineName;
-    }
+	public void setRotation(double rotation) {
+		this.rotation = rotation;
+	}
 
-    @Nullable
-    public Pair<Drawable, Integer> getPlaneImage() {
-        return planeImage;
-    }
+	@Nullable
+	public Destination getDestination() {
+		return destination;
+	}
 
-    public void setPlaneImage(@Nullable Pair<Drawable, Integer> planeImage) {
-        this.planeImage = planeImage;
-    }
+	public void setDestination(@Nullable Destination destination) {
+		this.destination = destination;
+	}
 
-    public float getSpeed() {
-        // TODO: index out of bounds exception ?
-        return speed.get(speed.size() - 1);
-    }
+	public String getFullName() {
+		return fullName != null && !fullName.isEmpty() ? fullName : (!shortName.isEmpty() ? shortName : "No CallSign");
+	}
 
-    public void setSpeed(float speed) {
-        this.speed.add(speed);
-    }
+	public void setFullName(@Nullable String fullName) {
+		this.fullName = fullName;
+	}
 
-    public ArrayList<Float> getSpeedDataSet() {
-        return speed;
-    }
+	public String getAirlineName() {
+		return airlineName != null && !airlineName.isEmpty() ? airlineName : "Unknown Airlines";
+	}
 
-    public float getAltitude() {
-        // TODO: index out of bounds exception ?
-        return altitude.get(altitude.size() - 1);
-    }
+	public void setAirlineName(@Nullable String airlineName) {
+		this.airlineName = airlineName;
+	}
 
-    public void setAltitude(float altitude) {
-        this.altitude.add(altitude);
-    }
+	@Nullable
+	public Pair<Drawable, Integer> getPlaneImage() {
+		return planeImage;
+	}
 
-    public ArrayList<Float> getAltitudeDataSet() {
-        return altitude;
-    }
+	public void setPlaneImage(@Nullable Pair<Drawable, Integer> planeImage) {
+		this.planeImage = planeImage;
+	}
 
-    public static class Builder {
-        private String key = "";
-        private String shortName = "";
-        private LatLng planePos;
-        private float rotation;
-        private Destination dest;
+	public double getSpeed() {
+		// TODO: index out of bounds exception ?
+		return speed.get(speed.size() - 1);
+	}
 
-        public Builder key(String key) {
-            this.key = key;
-            return this;
-        }
+	public void setSpeed(double speed) {
+		this.speed.add(speed);
+	}
 
-        public Builder shortName(String name) {
-            this.shortName = name;
-            return this;
-        }
+	public ArrayList<Double> getSpeedDataSet() {
+		return speed;
+	}
 
-        public Builder position(LatLng pos) {
-            this.planePos = pos;
-            return this;
-        }
+	public double getAltitude() {
+		// TODO: index out of bounds exception ?
+		return altitude.get(altitude.size() - 1);
+	}
 
-        public Builder rotation(float val) {
-            this.rotation = val;
-            return this;
-        }
+	public void setAltitude(double altitude) {
+		this.altitude.add(altitude);
+	}
 
-        public Builder shortDestinationNames(Destination destination) {
-            this.dest = destination;
-            return this;
-        }
-
-        public Plane build() {
-            return new Plane(this);
-        }
-
-    }
+	public ArrayList<Double> getAltitudeDataSet() {
+		return altitude;
+	}
 }
