@@ -11,15 +11,15 @@ import java.util.Locale;
  */
 public class Destination {
 
-	public final String toShort;
-	public final String fromShort;
-	public String toFullCity;
-	public String fromFullCity;
-	public String toFullAirport;
-	public String fromFullAirport;
+	private String toShort;
+	private String fromShort;
+	private String toFullCity;
+	private String fromFullCity;
+	private String toAirport;
+	private String fromAirport;
 
-	public LatLng destTo;
-	public LatLng destFrom;
+	private LatLng destTo;
+	private LatLng destFrom;
 
 	private long departureTime;
 	private long arrivalTime;
@@ -27,6 +27,22 @@ public class Destination {
 	public Destination(String fromShort, String toShort) {
 		this.fromShort = fromShort;
 		this.toShort = toShort;
+	}
+
+	public String getToShort() {
+		return toShort;
+	}
+
+	public void setToShort(String toShort) {
+		this.toShort = toShort;
+	}
+
+	public String getFromShort() {
+		return fromShort;
+	}
+
+	public void setFromShort(String fromShort) {
+		this.fromShort = fromShort;
 	}
 
 	public String getToFullCity() {
@@ -45,20 +61,20 @@ public class Destination {
 		this.fromFullCity = fromFullCity;
 	}
 
-	public String getToFullAirport() {
-		return toFullAirport;
+	public String getToAirport() {
+		return toAirport;
 	}
 
-	public void setToFullAirport(String toFullAirport) {
-		this.toFullAirport = toFullAirport;
+	public void setToAirport(String toFullAirport) {
+		this.toAirport = toFullAirport;
 	}
 
-	public String getFromFullAirport() {
-		return fromFullAirport;
+	public String getFromAirport() {
+		return fromAirport;
 	}
 
-	public void setFromFullAirport(String fromFullAirport) {
-		this.fromFullAirport = fromFullAirport;
+	public void setFromAirport(String fromAirport) {
+		this.fromAirport = fromAirport;
 	}
 
 	public LatLng getDestTo() {
@@ -77,6 +93,8 @@ public class Destination {
 		this.destFrom = destFrom;
 	}
 
+
+
 	public String getArrivalTime() {
 		if (arrivalTime != Long.MIN_VALUE)
 			return new SimpleDateFormat("h:mma", Locale.getDefault()).format(new Date(arrivalTime * 1000l)).toLowerCase();
@@ -84,10 +102,18 @@ public class Destination {
 		return "N/a";
 	}
 
+	public void setArrivalTime(long arrivalTime) {
+		this.arrivalTime = arrivalTime;
+	}
+
 	public String getDepartureTime() {
 		if (departureTime != Long.MIN_VALUE)
 			return new SimpleDateFormat("h:mma", Locale.getDefault()).format(new Date(arrivalTime * 1000l)).toLowerCase();
 
 		return "N/a";
+	}
+
+	public void setDepartureTime(long departureTime) {
+		this.departureTime = departureTime;
 	}
 }

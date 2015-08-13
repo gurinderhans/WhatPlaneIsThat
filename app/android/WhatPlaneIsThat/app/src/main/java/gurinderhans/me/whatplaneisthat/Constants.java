@@ -33,8 +33,8 @@ public class Constants {
     // short and full versions of the name
     public static final String KEY_PLANE_FROM_SHORT = "from_iata";
     public static final String KEY_PLANE_TO_SHORT = "to_iata";
-    public static final String KEY_PLANE_FROM = "from_city";
-    public static final String KEY_PLANE_TO = "to_city";
+    public static final String KEY_PLANE_FROM_CITY = "from_city";
+    public static final String KEY_PLANE_TO_CITY = "to_city";
     // exact position (lat, lng)
     public static final String KEY_PLANE_POS_FROM = "from_pos";
     public static final String KEY_PLANE_POS_TO = "to_pos";

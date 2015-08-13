@@ -97,18 +97,27 @@ public class Tools {
 		}
 	}
 
+	public static long getJsonLong(JSONObject data, String key) {
+		try {
+			return data.getLong(key);
+		} catch (JSONException e) {
+			return Long.MIN_VALUE;
+		}
+	}
+
 	/**
 	 * Checks if given plane with key `name` is contained in `markersList`
 	 *
-	 * @param markersList - list of all markers on the map
-	 * @param name        - plane name
+	 * @param allPlanes - list of planes to search through
+	 * @param key       - plane key, uniquely identifies each plane
 	 * @return - index of the plane in the list, -1 if not found
 	 */
-	public static int getPlaneMarkerIndex(List<Pair<Plane, Marker>> markersList, String name) {
-		for (int i = 0; i < markersList.size(); i++) {
-			if (markersList.get(i).first.keyIdentifier.equals(name))
+
+	public static int getPlaneIndex(List<Plane> allPlanes, String key) {
+		for (int i = 0; i < allPlanes.size(); i++)
+			if (allPlanes.get(i).keyIdentifier.equals(key))
 				return i;
-		}
+
 		return -1;
 	}
 

@@ -1,7 +1,7 @@
 package gurinderhans.me.whatplaneisthat.Models;
 
 import android.graphics.drawable.Drawable;
-import android.support.annotation.Nullable;
+import android.support.annotation.NonNull;
 import android.util.Pair;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -20,13 +20,10 @@ public class Plane {
 
 	public String shortName;
 
-	@Nullable
 	private String fullName;
 
-	@Nullable
 	private String airlineName;
 
-	@Nullable
 	private LatLng planePos;
 
 	private double rotation;
@@ -34,11 +31,8 @@ public class Plane {
 	private ArrayList<Double> altitude = new ArrayList<>();
 	private ArrayList<Double> speed = new ArrayList<>();
 
-
-	@Nullable
 	private Destination destination;
 
-	@Nullable
 	private Pair<Drawable, Integer> planeImage;
 
 
@@ -50,12 +44,11 @@ public class Plane {
 	// setters & getters
 	//
 
-	@Nullable
 	public LatLng getPlanePos() {
 		return planePos;
 	}
 
-	public void setPlanePos(@Nullable LatLng planePos) {
+	public void setPlanePos(LatLng planePos) {
 		this.planePos = planePos;
 	}
 
@@ -67,7 +60,7 @@ public class Plane {
 		return shortName;
 	}
 
-	public void setPosition(@Nullable LatLng planePos) {
+	public void setPosition(LatLng planePos) {
 		this.planePos = planePos;
 	}
 
@@ -79,12 +72,11 @@ public class Plane {
 		this.rotation = rotation;
 	}
 
-	@Nullable
 	public Destination getDestination() {
 		return destination;
 	}
 
-	public void setDestination(@Nullable Destination destination) {
+	public void setDestination(Destination destination) {
 		this.destination = destination;
 	}
 
@@ -92,7 +84,7 @@ public class Plane {
 		return fullName != null && !fullName.isEmpty() ? fullName : (!shortName.isEmpty() ? shortName : "No CallSign");
 	}
 
-	public void setFullName(@Nullable String fullName) {
+	public void setFullName(String fullName) {
 		this.fullName = fullName;
 	}
 
@@ -100,16 +92,15 @@ public class Plane {
 		return airlineName != null && !airlineName.isEmpty() ? airlineName : "Unknown Airlines";
 	}
 
-	public void setAirlineName(@Nullable String airlineName) {
+	public void setAirlineName(String airlineName) {
 		this.airlineName = airlineName;
 	}
 
-	@Nullable
 	public Pair<Drawable, Integer> getPlaneImage() {
 		return planeImage;
 	}
 
-	public void setPlaneImage(@Nullable Pair<Drawable, Integer> planeImage) {
+	public void setPlaneImage(Pair<Drawable, Integer> planeImage) {
 		this.planeImage = planeImage;
 	}
 

@@ -1,9 +1,7 @@
 package gurinderhans.me.whatplaneisthat;
 
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Point;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -29,7 +27,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.volley.Response;
-import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.github.mikephil.charting.charts.LineChart;
@@ -48,18 +45,14 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.PolylineOptions;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import gurinderhans.me.whatplaneisthat.Controllers.PlaneController;
-import gurinderhans.me.whatplaneisthat.Models.Destination;
 import gurinderhans.me.whatplaneisthat.Models.Plane;
 
 public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener,
@@ -107,12 +100,18 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	LineChart mAltitudeLineChart;
 	LineChart mSpeedLineChart;
 
+	// Controllers
+	PlaneController mPlanesController = new PlaneController();
+
 	// data response listeners
 	Response.Listener<JSONObject> onFetchedPlaneInfo = new Response.Listener<JSONObject>() {
 		@Override
 		public void onResponse(JSONObject response) {
 
-			// reset
+			// update this plane
+			mPlanesController.setMorePlaneInfo(mCurrentFocusedPlaneMarkerIndex, response);
+
+			/*// reset
 			for (Pair<Plane, Marker> markerPair : mPlaneMarkers)
 				markerPair.second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
 			mPlaneImage.setImageResource(R.drawable.transparent);
@@ -121,70 +120,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 				mCurrentDrawnPolyline.remove();
 
 
-            /* update plane object */
-
-			mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setFullName(Tools.getJsonString(response, Constants.KEY_AIRCRAFT_NAME));
-			mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setAirlineName(Tools.getJsonString(response, Constants.KEY_AIRLINE_NAME));
-
-			Destination prevDestination = mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.getDestination();
-
-			// build destination object
-			Destination.Builder destBuilder = new Destination.Builder();
-
-			if (prevDestination != null) {
-				destBuilder.fromShortName(prevDestination.fromShort)
-						.toShortName(prevDestination.toShort);
-			}
-
-			if (!response.isNull(Constants.KEY_PLANE_FROM_SHORT))
-				destBuilder.fromShortName(Tools.getJsonString(response, Constants.KEY_PLANE_FROM_SHORT));
-
-			if (!response.isNull(Constants.KEY_PLANE_TO_SHORT))
-				destBuilder.toShortName(Tools.getJsonString(response, Constants.KEY_PLANE_TO_SHORT));
-
-			// set destination full name
-			destBuilder.fromFullName(Tools.getJsonString(response, Constants.KEY_PLANE_FROM))
-					.toFullName(Tools.getJsonString(response, Constants.KEY_PLANE_TO));
-
-			// destination arrival and departure times
-			if (!response.isNull(Constants.KEY_PLANE_DEPARTURE_TIME)) {
-				try {
-					destBuilder.departureTime(response.getLong(Constants.KEY_PLANE_DEPARTURE_TIME));
-				} catch (Exception e) {
-				}
-			}
-
-			if (!response.isNull(Constants.KEY_PLANE_ARRIVAL_TIME)) {
-				try {
-					destBuilder.arrivalTime(response.getLong(Constants.KEY_PLANE_ARRIVAL_TIME));
-				} catch (JSONException e) {
-				}
-			}
-
-			// NOTE: catch blocks can be empty as the values for these variables have previously
-			// been set and not setting them now won't matter
-
-			if (!response.isNull(Constants.KEY_PLANE_POS_FROM)) {
-				try {
-					JSONArray coordsArr = response.getJSONArray(Constants.KEY_PLANE_POS_FROM);
-					if (coordsArr.length() == 2) {
-						destBuilder.fromCoords(new LatLng(coordsArr.getDouble(0), coordsArr.getDouble(1)));
-					}
-				} catch (JSONException e) {
-				}
-			}
-			if (!response.isNull(Constants.KEY_PLANE_POS_TO)) {
-				try {
-					JSONArray coordsArr = response.getJSONArray(Constants.KEY_PLANE_POS_TO);
-					if (coordsArr.length() == 2) {
-						destBuilder.toCoords(new LatLng(coordsArr.getDouble(0), coordsArr.getDouble(1)));
-					}
-				} catch (JSONException e) {
-				}
-			}
-
-			Destination planeDest = destBuilder.build();
-			mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).first.setDestination(planeDest);
+            */
 
 
 			String largeImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_LARGE_URL);
@@ -236,7 +172,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			} catch (JSONException e) {
 			}
 
-			updateSlidingPane();
+			updateSlidingPane();*/
 		}
 	};
 
@@ -262,9 +198,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		@Override
 		public void onResponse(JSONObject response) {
 
-			// returns the list of valid planes
-			PlaneController.createPlanes(response);
-
+			// add new planes to the list
+			List<Plane> planes = mPlanesController.addPlanes(response);
 
 			// fetch again after 10 seconds
 			mHandler.postDelayed(fetchData, 10000);
@@ -334,7 +269,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		// set image initial position so it hides behind the panel
 		float translationVal = getResources().getDimensionPixelSize(R.dimen.plane_image_height);
 		mPlaneImage.setTranslationY(translationVal);
-
 
 		mAltitudeLineChart = (LineChart) findViewById(R.id.planeAltitudeChart);
 		mSpeedLineChart = (LineChart) findViewById(R.id.planeSpeedChart);
