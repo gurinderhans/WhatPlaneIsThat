@@ -4,126 +4,117 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
-import gurinderhans.me.whatplaneisthat.Constants;
+import static gurinderhans.me.whatplaneisthat.Constants.UNKNOWN_VALUE;
 
 /**
  * Created by ghans on 6/24/15.
  */
 public class Destination {
 
-    public final String toShort;
-    public final String fromShort;
-    public final String toFullCity;
-    public final String fromFullCity;
-    public final String toFullAirport;
-    public final String fromFullAirport;
+	private String toShort;
+	private String fromShort;
+	private String toFullCity;
+	private String fromFullCity;
+	private String toAirport;
+	private String fromAirport;
 
-    public final LatLng destTo;
-    public final LatLng destFrom;
+	private LatLng destTo;
+	private LatLng destFrom;
 
-    private final long departureTime;
-    private final long arrivalTime;
+	private long departureTime;
+	private long arrivalTime;
 
-    private Destination(Builder destBuilder) {
+	public Destination(String fromShort, String toShort) {
+		this.fromShort = fromShort;
+		this.toShort = toShort;
+	}
 
-        this.toShort = destBuilder.toShort;
-        this.fromShort = destBuilder.fromShort;
+	public String getToShort() {
+		return toShort != null && !toShort.isEmpty() ? toShort : UNKNOWN_VALUE;
+	}
 
-        // split to get city and airport name, else assign unknown value
+	public void setToShort(String toShort) {
+		this.toShort = toShort;
+	}
 
-        String[] toDestSplit = destBuilder.toFull.split(",");
-        if (toDestSplit.length == 2) {
-            this.toFullCity = toDestSplit[0].trim();
-            this.toFullAirport = toDestSplit[1].trim();
-        } else {
-            this.toFullCity = Constants.UNKNOWN_VALUE;
-            this.toFullAirport = Constants.UNKNOWN_VALUE;
-        }
+	public String getFromShort() {
+		return fromShort != null && !fromShort.isEmpty() ? fromShort : UNKNOWN_VALUE;
+	}
 
-        String[] fromDestSplit = destBuilder.fromFull.split(",");
-        if (fromDestSplit.length == 2) {
-            this.fromFullCity = fromDestSplit[0].trim();
-            this.fromFullAirport = fromDestSplit[1].trim();
-        } else {
-            this.fromFullCity = Constants.UNKNOWN_VALUE;
-            this.fromFullAirport = Constants.UNKNOWN_VALUE;
-        }
+	public void setFromShort(String fromShort) {
+		this.fromShort = fromShort;
+	}
 
-        this.departureTime = destBuilder.departureTime;
-        this.arrivalTime = destBuilder.arrivalTime;
+	public String getToFullCity() {
+		return toFullCity != null && !toFullCity.isEmpty() ? toFullCity : UNKNOWN_VALUE;
+	}
 
-        this.destTo = destBuilder.destTo;
-        this.destFrom = destBuilder.destFrom;
-    }
+	public void setToFullCity(String toFullCity) {
+		this.toFullCity = toFullCity;
+	}
 
-    public String getArrivalTime() {
-        return new SimpleDateFormat("h:mma").format(new Date(arrivalTime * 1000l)).toLowerCase();
-    }
+	public String getFromFullCity() {
+		return fromFullCity != null && !fromFullCity.isEmpty() ? fromFullCity : UNKNOWN_VALUE;
+	}
 
-    public String getDepartureTime() {
-        if (departureTime != 0l)
-            return new SimpleDateFormat("h:mma").format(new Date(arrivalTime * 1000l)).toLowerCase();
-        return "N/a";
-    }
+	public void setFromFullCity(String fromFullCity) {
+		this.fromFullCity = fromFullCity;
+	}
 
-    public static class Builder {
+	public String getToAirport() {
+		return toAirport != null && !toAirport.isEmpty() ? toAirport : UNKNOWN_VALUE;
+	}
 
-        private String fromShort = "";
-        private String toShort = "";
+	public void setToAirport(String toFullAirport) {
+		this.toAirport = toFullAirport.trim();
+	}
 
-        private String fromFull = "";
-        private String toFull = "";
+	public String getFromAirport() {
+		return fromAirport != null && !fromAirport.isEmpty() ? fromAirport : UNKNOWN_VALUE;
+	}
 
-        private long departureTime;
-        private long arrivalTime;
+	public void setFromAirport(String fromAirport) {
+		this.fromAirport = fromAirport.trim();
+	}
 
-        private LatLng destTo;
-        private LatLng destFrom;
+	public LatLng getDestToCoords() {
+		return destTo;
+	}
+
+	public void setDestTo(LatLng destTo) {
+		this.destTo = destTo;
+	}
+
+	public LatLng getDestFromCoords() {
+		return destFrom;
+	}
+
+	public void setDestFrom(LatLng destFrom) {
+		this.destFrom = destFrom;
+	}
 
 
-        public Builder toShortName(String name) {
-            this.toShort = name;
-            return this;
-        }
+	public String getArrivalTime() {
+		if (arrivalTime != Long.MIN_VALUE)
+			return new SimpleDateFormat("h:mma", Locale.getDefault()).format(new Date(arrivalTime * 1000l)).toLowerCase();
 
-        public Builder fromShortName(String name) {
-            this.fromShort = name;
-            return this;
-        }
+		return "N/a";
+	}
 
-        public Builder toFullName(String name) {
-            this.toFull = name;
-            return this;
-        }
+	public void setArrivalTime(long arrivalTime) {
+		this.arrivalTime = arrivalTime;
+	}
 
-        public Builder fromFullName(String name) {
-            this.fromFull = name;
-            return this;
-        }
+	public String getDepartureTime() {
+		if (departureTime != Long.MIN_VALUE)
+			return new SimpleDateFormat("h:mma", Locale.getDefault()).format(new Date(arrivalTime * 1000l)).toLowerCase();
 
-        public Builder departureTime(long time) {
-            this.departureTime = time;
-            return this;
-        }
+		return "N/a";
+	}
 
-        public Builder arrivalTime(long time) {
-            this.arrivalTime = time;
-            return this;
-        }
-
-        public Builder toCoords(LatLng pos) {
-            this.destTo = pos;
-            return this;
-        }
-
-        public Builder fromCoords(LatLng pos) {
-            this.destFrom = pos;
-            return this;
-        }
-
-        public Destination build() {
-            return new Destination(this);
-        }
-    }
+	public void setDepartureTime(long departureTime) {
+		this.departureTime = departureTime;
+	}
 }

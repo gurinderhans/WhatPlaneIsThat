@@ -11,32 +11,32 @@ import com.android.volley.toolbox.Volley;
  */
 public class PlaneApplication extends Application {
 
-    private static PlaneApplication sInstance;
+	private static PlaneApplication sInstance;
 
-    private RequestQueue mRequestQueue;
+	private RequestQueue mRequestQueue;
 
-    private ImageLoader mImageLoader;
+	private ImageLoader mImageLoader;
 
-    public synchronized static PlaneApplication getInstance() {
-        return sInstance;
-    }
+	public synchronized static PlaneApplication getInstance() {
+		return sInstance;
+	}
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
+	@Override
+	public void onCreate() {
+		super.onCreate();
 
-        mRequestQueue = Volley.newRequestQueue(this);
+		mRequestQueue = Volley.newRequestQueue(this);
 
-        mImageLoader = new ImageLoader(mRequestQueue, new BitmapLruCache());
+		mImageLoader = new ImageLoader(mRequestQueue, new BitmapLruCache());
 
-        sInstance = this;
-    }
+		sInstance = this;
+	}
 
-    public RequestQueue getRequestQueue() {
-        return mRequestQueue;
-    }
+	public RequestQueue getRequestQueue() {
+		return mRequestQueue;
+	}
 
-    public ImageLoader getImageLoader() {
-        return mImageLoader;
-    }
+	public ImageLoader getImageLoader() {
+		return mImageLoader;
+	}
 }

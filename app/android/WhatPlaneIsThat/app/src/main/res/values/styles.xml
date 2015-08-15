@@ -10,7 +10,7 @@
 
     <dimen name="plane_image_height">230dp</dimen>
 
-    <item name="sliding_panel_anchor_point" format="float" type="integer">0.63</item>
+    <item name="sliding_panel_anchor_point" format="float" type="integer">0.615</item>
 
     <dimen name="opened_panel_red_bar_padding_bottom">10dp</dimen>
     <dimen name="opened_panel_redbar_title_size">18sp</dimen>

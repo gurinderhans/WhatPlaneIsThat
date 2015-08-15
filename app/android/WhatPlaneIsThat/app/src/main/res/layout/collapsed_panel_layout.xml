@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:weightSum="1">
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="horizontal"
+              android:weightSum="1">
 
     <RelativeLayout
         android:layout_width="0dp"
@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="XYZA71"
-            android:textSize="18sp" />
+            android:textSize="18sp"/>
 
     </RelativeLayout>
 
@@ -41,7 +41,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="ABC"
-                android:textSize="18sp" />
+                android:textSize="18sp"/>
 
             <ImageView
                 android:id="@+id/plane_from_to_img"
@@ -52,7 +52,7 @@
                 android:layout_marginLeft="3dp"
                 android:layout_marginRight="3dp"
                 android:layout_marginStart="3dp"
-                android:src="@drawable/plane_from_to" />
+                android:src="@drawable/plane_from_to"/>
 
             <TextView
                 android:id="@+id/planeTo"
@@ -60,7 +60,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="XYZ"
-                android:textSize="18sp" />
+                android:textSize="18sp"/>
         </LinearLayout>
     </RelativeLayout>
 
@@ -83,7 +83,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:text="Arrival Time"
-                android:textSize="12sp" />
+                android:textSize="12sp"/>
 
             <TextView
                 android:id="@+id/arrivalTime"
@@ -91,7 +91,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="23:03pm"
-                android:textSize="18sp" />
+                android:textSize="18sp"/>
         </LinearLayout>
 
     </RelativeLayout>
