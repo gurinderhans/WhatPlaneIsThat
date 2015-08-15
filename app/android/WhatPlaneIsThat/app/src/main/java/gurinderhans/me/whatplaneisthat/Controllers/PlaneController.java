@@ -1,5 +1,6 @@
 package gurinderhans.me.whatplaneisthat.Controllers;
 
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONArray;
@@ -29,11 +30,13 @@ public class PlaneController {
 
 	private List<Plane> allPlanes = new ArrayList<>();
 
-	public PlaneController() {
-		/* @empty constructor */
+	public final GoogleMap mMap;
+
+	public PlaneController(GoogleMap map) {
+		this.mMap = map;
 	}
 
-	public List<Plane> addPlanes(JSONObject data) {
+	public List<Plane> updatePlanes(JSONObject data) {
 
 		Iterator<String> iterator = data.keys();
 
@@ -109,6 +112,12 @@ public class PlaneController {
 		return allPlanes;
 	}
 
+	/**
+	 * Sets additional info on plane, when the user taps on the plane marker to inquire more
+	 *
+	 * @param planeIndex - index of the plane in `allPlanes`
+	 * @param data       - the additional data related to this plane
+	 */
 	public void setMorePlaneInfo(int planeIndex, JSONObject data) {
 		Plane plane = allPlanes.get(planeIndex);
 
@@ -128,9 +137,9 @@ public class PlaneController {
 			planeDestination.setArrivalTime(getJsonLong(data, Constants.KEY_PLANE_ARRIVAL_TIME));
 
 			try {
-				JSONArray coordsArr = data.getJSONArray(Constants.KEY_PLANE_POS_FROM);
-				if (coordsArr.length() == 2)
-					planeDestination.setDestFrom(new LatLng(coordsArr.getDouble(0), coordsArr.getDouble(1)));
+				JSONArray coordinatesArr = data.getJSONArray(Constants.KEY_PLANE_POS_FROM);
+				if (coordinatesArr.length() == 2)
+					planeDestination.setDestFrom(new LatLng(coordinatesArr.getDouble(0), coordinatesArr.getDouble(1)));
 			} catch (Exception e) {
 				// unable to set dest from coordinates, oh well!
 			}

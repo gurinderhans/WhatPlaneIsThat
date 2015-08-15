@@ -27,7 +27,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.volley.Response;
-import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -81,9 +80,9 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	SensorManager mSensorManager;
 	LocationManager mLocationManager;
 	GoogleMap mMap;
-	LatLng mUserLocation;
+	LatLng mUserLocation = new LatLng(0, 0); // default
 	Marker mUserMarker;
-	GroundOverlay mPlaneVisibilityCircle;
+	GroundOverlay mUserVisibilityCircle;
 
 	@Nullable
 	Polyline mCurrentDrawnPolyline; // current drawn polyline
@@ -101,7 +100,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	LineChart mSpeedLineChart;
 
 	// Controllers
-	PlaneController mPlanesController = new PlaneController();
+	PlaneController mPlanesController;
 
 	// data response listeners
 	Response.Listener<JSONObject> onFetchedPlaneInfo = new Response.Listener<JSONObject>() {
@@ -118,12 +117,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 			if (mCurrentDrawnPolyline != null)
 				mCurrentDrawnPolyline.remove();
-
-
             */
 
 
-			String largeImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_LARGE_URL);
+			/*String largeImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_LARGE_URL);
 			String smallImageUrl = Tools.getJsonString(response, Constants.KEY_PLANE_IMAGE_URL);
 
 			String imgUrl = !largeImageUrl.isEmpty() ? largeImageUrl : smallImageUrl;
@@ -159,10 +156,10 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 			// set marker icon to SELECTED
 			mPlaneMarkers.get(mCurrentFocusedPlaneMarkerIndex).second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
-			mNoPlaneSelectedView.setVisibility(View.INVISIBLE);
+			mNoPlaneSelectedView.setVisibility(View.INVISIBLE);*/
 
 			// draw new polyline
-			try {
+			/*try {
 				PolylineOptions line = new PolylineOptions().width(10).color(R.color.visibility_circle_color);
 				JSONArray trailArr = response.getJSONArray(Constants.KEY_PLANE_MAP_TRAIL);
 				for (int i = 0; i < trailArr.length(); i += 5) {
@@ -183,26 +180,25 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			LatLng south_east = GeoLocation.boundingBox(mUserLocation, 135, Constants.SEARCH_RADIUS);
 			String reqUrl = Constants.BASE_URL + String.format(
 					Constants.OPTIONS_FORMAT,
-					north_west.latitude + "",
-					south_east.latitude + "",
-					north_west.longitude + "",
-					south_east.longitude + "");
+					String.valueOf(north_west.latitude),
+					String.valueOf(south_east.latitude),
+					String.valueOf(north_west.longitude),
+					String.valueOf(south_east.longitude)
+			);
 
-			// TODO: add error listener
-			JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, onFetchedAllPlanes, null);
+			// TODO: add error listener to json object request
+			JsonObjectRequest request = new JsonObjectRequest(reqUrl, null, new Response.Listener<JSONObject>() {
+				@Override
+				public void onResponse(JSONObject response) {
+					// add new planes to the list
+					mPlanesController.updatePlanes(response);
+
+					// fetch again after 10 seconds
+					mHandler.postDelayed(fetchData, Constants.REFRESH_INTERVAL);
+				}
+			}, null);
+
 			PlaneApplication.getInstance().getRequestQueue().add(request);
-		}
-	};
-
-	Response.Listener<JSONObject> onFetchedAllPlanes = new Response.Listener<JSONObject>() {
-		@Override
-		public void onResponse(JSONObject response) {
-
-			// add new planes to the list
-			List<Plane> planes = mPlanesController.addPlanes(response);
-
-			// fetch again after 10 seconds
-			mHandler.postDelayed(fetchData, 10000);
 		}
 	};
 
@@ -227,21 +223,24 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		mSlidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
 		mPlaneImage = (ImageView) findViewById(R.id.planeImage);
 
+		mAltitudeLineChart = (LineChart) findViewById(R.id.planeAltitudeChart);
+		mSpeedLineChart = (LineChart) findViewById(R.id.planeSpeedChart);
+
 		mCollapsedView = findViewById(R.id.panelCollapsedView);
 		mAnchoredView = findViewById(R.id.panelAnchoredView);
 		mNoPlaneSelectedView = findViewById(R.id.noPlaneSelectedView);
 
-		// hide all other panel views so only prompt view shows
-		mCollapsedView.setVisibility(View.INVISIBLE);
-		mAnchoredView.setVisibility(View.INVISIBLE);
 
-		// get cached location
+		managePanel();
+		setUpMapIfNeeded();
+
+		// initialize plane controller with google maps
+		mPlanesController = new PlaneController(mMap);
+
+		// store cached location to have something until GPS is available
 		Location cachedLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-		if (cachedLocation != null) {
+		if (cachedLocation != null)
 			mUserLocation = new LatLng(cachedLocation.getLatitude(), cachedLocation.getLongitude());
-		} else {
-			mUserLocation = new LatLng(0, 0);
-		}
 
 		mLockCameraToUserLocation.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -261,28 +260,15 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 				});
 			}
 		});
-
-		setUpMapIfNeeded();
-
 		mSlidingUpPanelLayout.setPanelSlideListener(this);
-
-		// set image initial position so it hides behind the panel
-		float translationVal = getResources().getDimensionPixelSize(R.dimen.plane_image_height);
-		mPlaneImage.setTranslationY(translationVal);
-
-		mAltitudeLineChart = (LineChart) findViewById(R.id.planeAltitudeChart);
-		mSpeedLineChart = (LineChart) findViewById(R.id.planeSpeedChart);
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
+
 		setUpMapIfNeeded();
-
-		// fetch data
 		mHandler.postDelayed(fetchData, 0);
-
-		// register different types of listeners
 		mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000l, 0f, this);
 		mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_GAME);
 	}
@@ -302,7 +288,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	@Override
 	public boolean dispatchTouchEvent(MotionEvent ev) {
 		if (ev.getAction() == MotionEvent.ACTION_MOVE) {
-			// TODO: maybe wanna track distance and set to true if past a certain dist?
+			// TODO: set dist threshold before setting follow user to false
 			followUser = false;
 			mLockCameraToUserLocation.setImageResource(R.drawable.ic_gps_fixed_black_24dp);
 		}
@@ -315,14 +301,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	//
 
 	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-	}
-
-	@Override
 	public void onSensorChanged(SensorEvent event) {
 		// get the angle around the z-axis rotated
 		float degree = Math.round(event.values[0]);
 		mUserMarker.setRotation(degree);
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
 	}
 
 
@@ -338,16 +324,14 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		mUserLocation = new LatLng(location.getLatitude(), location.getLongitude());
 		mUserMarker.setPosition(mUserLocation);
 
-		// plane visibiity circle - radius will depend on the actual visibilty retreived from some weather API ( TODO )
-		mPlaneVisibilityCircle.setPosition(mUserLocation);
-		mPlaneVisibilityCircle.setDimensions(5000f);
+		// user visibility circle - radius will depend on the actual visibility retrieved from a weather API // TODO: 15-08-14
+		mUserVisibilityCircle.setPosition(mUserLocation);
+		mUserVisibilityCircle.setDimensions(5000f);
 
 		// follow user maker
 		if (followUser && cameraAnimationFinished) {
 			cameraAnimationFinished = false;
-			// FIXME: zoom value not corrected properly
-			float zoom = (mMap.getCameraPosition().zoom < Constants.MAP_CAMERA_LOCK_MIN_ZOOM) ? Constants.MAP_CAMERA_LOCK_MIN_ZOOM : mMap.getCameraPosition().zoom;
-			mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, zoom), new GoogleMap.CancelableCallback() {
+			mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, Constants.MAP_CAMERA_LOCK_MIN_ZOOM), new GoogleMap.CancelableCallback() {
 				@Override
 				public void onFinish() {
 					cameraAnimationFinished = true;
@@ -411,19 +395,24 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		return true;
 	}
 
+
 	//
 	// MARK: map click listener
 	//
 
 	@Override
 	public void onMapClick(LatLng latLng) {
+
+		// TODO: plane controller should handle this
+
+		// show the no plane selected panel image
 		mNoPlaneSelectedView.setVisibility(View.VISIBLE);
 
 		// remove polyline
 		if (mCurrentDrawnPolyline != null)
 			mCurrentDrawnPolyline.remove();
 
-		// reset marker icons
+		// reset markers
 		for (Pair<Plane, Marker> pair : mPlaneMarkers) {
 			pair.second.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
 		}
@@ -441,13 +430,90 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 	@Override
 	public void onPanelSlide(View view, float v) {
+		managePanel(v);
+	}
+
+	@Override
+	public void onPanelCollapsed(View view) {
+		mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
+	}
+
+	@Override
+	public void onPanelAnchored(View view) {
+		mPanelState = SlidingUpPanelLayout.PanelState.ANCHORED;
+	}
+
+	@Override
+	public void onPanelExpanded(View view) {
+	}
+
+	@Override
+	public void onPanelHidden(View view) {
+	}
+
+
+	//
+	// MARK: custom methods
+	//
+
+	private void setUpMapIfNeeded() {
+		if (mMap == null) {
+			mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
+					.getMap();
+			if (mMap != null)
+				setUpMap();
+		}
+	}
+
+	private void setUpMap() {
+
+		// map settings
+		mMap.getUiSettings().setMapToolbarEnabled(false);
+		mMap.setOnMarkerClickListener(this);
+		mMap.setOnMapClickListener(this);
+
+		// user marker
+		mUserMarker = mMap.addMarker(new MarkerOptions().position(mUserLocation)
+						.icon(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_marker, -1, -1)))
+						.rotation(0f)
+						.flat(true)
+						.anchor(0.5f, 0.5f)
+		);
+		// user visibility circle
+		mUserVisibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
+				.image(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_visibility, -1, -1)))
+				.anchor(0.5f, 0.5f)
+				.position(mUserLocation, 500000f));
+
+		// animate camera to user location
+		mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, 12f));
+	}
+
+	/**
+	 * Manages the slide panel
+	 *
+	 * @param slideValue - how far up the panel is form the top (in percent %)
+	 */
+	private void managePanel(float slideValue) {
+
+		if (slideValue == 0) {
+			// hide all other panel views so only prompt view shows
+			mCollapsedView.setVisibility(View.INVISIBLE);
+			mAnchoredView.setVisibility(View.INVISIBLE);
+
+			// set image initial position so it hides behind the panel
+			float translationVal = getResources().getDimensionPixelSize(R.dimen.plane_image_height);
+			mPlaneImage.setTranslationY(translationVal);
+
+			return;
+		}
 
 		// grab the screen height and do things relative to it
 		Point screenSize = new Point();
 		getWindowManager().getDefaultDisplay().getSize(screenSize);
 
 		// calculate a transition value for the image
-		float translationVal = -((screenSize.y * v) * 1.44f) + getResources().getDimensionPixelSize(R.dimen.plane_image_height);
+		float translationVal = -((screenSize.y * slideValue) * 1.44f) + getResources().getDimensionPixelSize(R.dimen.plane_image_height);
 
 		// compute the transition value limiter
 		TypedValue outValue = new TypedValue();
@@ -462,91 +528,27 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 
 		// going up and state hasn't been changed
-		if (v - mPanelPrevSlideValue > 0 && mPanelState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
+		if (slideValue - mPanelPrevSlideValue > 0 && mPanelState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
 			mPanelState = SlidingUpPanelLayout.PanelState.ANCHORED;
-			mPanelPrevSlideValue = v;
+			mPanelPrevSlideValue = slideValue;
 			collapsedToOpened(100l);
 			setOpenedPanelData();
 		}
 
 		// if coming down and state not collapsed, set to collapsed to the collapsed layout doesn't show until
 		// its actually collapsed
-		if (v - mPanelPrevSlideValue < 0 && mPanelState != SlidingUpPanelLayout.PanelState.COLLAPSED) {
+		if (slideValue - mPanelPrevSlideValue < 0 && mPanelState != SlidingUpPanelLayout.PanelState.COLLAPSED) {
 			mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
-			mPanelPrevSlideValue = v;
+			mPanelPrevSlideValue = slideValue;
 			openedToCollapsed(100l);
 			setCollapsedPanelData();
 		}
-
 	}
 
-	@Override
-	public void onPanelCollapsed(View view) {
-		mPanelState = SlidingUpPanelLayout.PanelState.COLLAPSED;
-	}
-
-	@Override
-	public void onPanelExpanded(View view) {
-	}
-
-	@Override
-	public void onPanelAnchored(View view) {
-		mPanelState = SlidingUpPanelLayout.PanelState.ANCHORED;
-	}
-
-	@Override
-	public void onPanelHidden(View view) {
-	}
-
-
-	//
-	// MARK: custom methods
-	//
-
-	private void setUpMapIfNeeded() {
-		// Do a null check to confirm that we have not already instantiated the map.
-		if (mMap == null) {
-			// Try to obtain the map from the SupportMapFragment.
-			mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
-					.getMap();
-			// Check if we were successful in obtaining the map.
-			if (mMap != null) {
-				setUpMap();
-			}
-		}
-	}
-
-	private void setUpMap() {
-
-		// user marker
-		mUserMarker = mMap.addMarker(new MarkerOptions().position(mUserLocation)
-						.icon(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_marker, -1, -1)))
-						.rotation(0f)
-						.flat(true)
-						.anchor(0.5f, 0.5f)
-		);
-		mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mUserLocation, 12f));
-
-		// user visibility circle
-		mPlaneVisibilityCircle = mMap.addGroundOverlay(new GroundOverlayOptions()
-				.image(BitmapDescriptorFactory.fromBitmap(Tools.getSVGBitmap(this, R.drawable.user_visibility, -1, -1)))
-				.anchor(0.5f, 0.5f)
-				.position(mUserLocation, 500000f));
-
-		// hide the marker toolbar - the two buttons on the bottom right that go to google maps
-		mMap.getUiSettings().setMapToolbarEnabled(false);
-
-		// marker click listener
-		mMap.setOnMarkerClickListener(this);
-
-		mMap.setOnMapClickListener(this);
-
-	}
 
 	// MARK: panel view transitions
 
 	private void openedToCollapsed(final long duration) {
-
 		Animation animation = new AlphaAnimation(1, 0);
 		animation.setInterpolator(new AccelerateInterpolator());
 		animation.setDuration(duration);
@@ -555,22 +557,20 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			@Override
 			public void onAnimationStart(Animation animation) {
 				// show anchored view
-				Animation animation1 = new AlphaAnimation(0, 1);
+				Animation alphaAnimation = new AlphaAnimation(0, 1);
 				mCollapsedView.setVisibility(View.VISIBLE);
-				animation1.setInterpolator(new AccelerateInterpolator());
-				animation1.setDuration(duration);
-				mCollapsedView.startAnimation(animation1);
+				alphaAnimation.setInterpolator(new AccelerateInterpolator());
+				alphaAnimation.setDuration(duration);
+				mCollapsedView.startAnimation(alphaAnimation);
 			}
 
 			@Override
 			public void onAnimationEnd(Animation animation) {
 				mAnchoredView.setVisibility(View.GONE);
-
 			}
 
 			@Override
 			public void onAnimationRepeat(Animation animation) {
-
 			}
 		});
 
@@ -586,44 +586,26 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			@Override
 			public void onAnimationStart(Animation animation) {
 				// show anchored view
-				Animation animation1 = new AlphaAnimation(0, 1);
+				Animation alphaAnimation = new AlphaAnimation(0, 1);
 				mAnchoredView.setVisibility(View.VISIBLE);
-				animation1.setInterpolator(new AccelerateInterpolator());
-				animation1.setDuration(duration);
-				mAnchoredView.startAnimation(animation1);
+				alphaAnimation.setInterpolator(new AccelerateInterpolator());
+				alphaAnimation.setDuration(duration);
+				mAnchoredView.startAnimation(alphaAnimation);
 			}
 
 			@Override
 			public void onAnimationEnd(Animation animation) {
 				mCollapsedView.setVisibility(View.GONE);
-
 			}
 
 			@Override
 			public void onAnimationRepeat(Animation animation) {
-
 			}
 		});
-
 		mCollapsedView.startAnimation(animation);
 	}
 
-	public void updateSlidingPane() {
-		switch (mSlidingUpPanelLayout.getPanelState()) {
-			case COLLAPSED:
-				setCollapsedPanelData();
-				break;
-			case ANCHORED:
-				setOpenedPanelData();
-				break;
-			case EXPANDED:
-				setOpenedPanelData();
-				break;
-			default:
-				break;
-		}
-	}
-
+	// TODO: 15-08-14 fix
 	public void setCollapsedPanelData() {
 
 		if (mCurrentFocusedPlaneMarkerIndex == -1) return;
@@ -642,6 +624,7 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		mCollapsedView.setVisibility(View.VISIBLE);
 	}
 
+	// TODO: 15-08-14 fix
 	public void setOpenedPanelData() {
 		if (mCurrentFocusedPlaneMarkerIndex == -1) return;
 
@@ -665,7 +648,26 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 	}
 
+	public void updateSlidingPane() {
+		switch (mSlidingUpPanelLayout.getPanelState()) {
+			case COLLAPSED:
+				setCollapsedPanelData();
+				break;
+			case ANCHORED:
+				setOpenedPanelData();
+				break;
+			case EXPANDED:
+				setOpenedPanelData();
+				break;
+			default:
+				break;
+		}
+	}
+
+
+	//
 	// MARK: line chart
+	//
 
 	private void setupChart(LineChart chart, LineData data, int color) {
 
@@ -712,7 +714,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		chart.animateX(2500);
 	}
 
-	@Nullable
 	private LineData getPlaneAltitudeData() {
 
 		if (mCurrentFocusedPlaneMarkerIndex == -1)
@@ -750,7 +751,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 	}
 
-	@Nullable
 	private LineData getPlaneSpeedData() {
 
 		if (mCurrentFocusedPlaneMarkerIndex == -1)
