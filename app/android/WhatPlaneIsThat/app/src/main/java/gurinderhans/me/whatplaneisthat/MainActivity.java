@@ -28,10 +28,7 @@ import android.widget.TextView;
 import com.android.volley.Response;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.Legend;
-import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
@@ -46,15 +43,12 @@ import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-
 import gurinderhans.me.whatplaneisthat.Controllers.PlaneController;
 import gurinderhans.me.whatplaneisthat.Models.Plane;
 
 import static gurinderhans.me.whatplaneisthat.Constants.BASE_URL;
 import static gurinderhans.me.whatplaneisthat.Constants.INVALID_ARRAY_INDEX;
 import static gurinderhans.me.whatplaneisthat.Constants.MAP_CAMERA_LOCK_MIN_ZOOM;
-import static gurinderhans.me.whatplaneisthat.Constants.MIN_GRAPH_POINTS;
 import static gurinderhans.me.whatplaneisthat.Constants.OPTIONS_FORMAT;
 import static gurinderhans.me.whatplaneisthat.Constants.PLANE_DATA_URL;
 import static gurinderhans.me.whatplaneisthat.Constants.REFRESH_INTERVAL;
@@ -63,6 +57,9 @@ import static gurinderhans.me.whatplaneisthat.Constants.SEARCH_RADIUS;
 public class MainActivity extends FragmentActivity implements LocationListener, SensorEventListener,
 		OnMarkerClickListener, SlidingUpPanelLayout.PanelSlideListener, GoogleMap.OnMapClickListener {
 
+	/**
+	 * Possible future [TODOS]
+	 */
 	// TODO: Estimate plane location and make it move in "realtime"
 	// TODO: use plane speed to make planes move in real-time and then adjust location on new HTTP req.
 	// TODO: guess which planes "I" might be able to see
@@ -74,8 +71,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	public static LatLng mUserLocation = new LatLng(0, 0); // default
 
 	Handler mHandler = new Handler();
-
-	int mCurrentFocusedPlaneMarkerIndex = -1;
 
 	boolean followUser = false;
 	boolean cameraAnimationFinished = false;
@@ -107,22 +102,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 	// Controllers
 	PlaneController mPlanesController;
-
-	// data response listeners
-	Response.Listener<JSONObject> onFetchedPlaneInfo = new Response.Listener<JSONObject>() {
-		@Override
-		public void onResponse(JSONObject response) {
-
-
-			// update this plane
-			mPlanesController.setMorePlaneInfo(mCurrentFocusedPlaneMarkerIndex, response, mPlaneImage, mHandler);
-
-			// hide no plane selected image
-			mNoPlaneSelectedView.setVisibility(View.INVISIBLE);
-
-			updateSlidingPane();
-		}
-	};
 
 	Runnable fetchData = new Runnable() {
 		@Override
@@ -317,28 +296,41 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 	@Override
 	public boolean onMarkerClick(Marker marker) {
 
-		mCurrentFocusedPlaneMarkerIndex = Tools.getPlaneMarkerIdIndex(
-				mPlanesController.getPlaneMarkers(), marker.getId());
+		// set selected index on plane controller
+		mPlanesController.setSelectedPlaneIndex(
+				Tools.getPlaneMarkerIdIndex(mPlanesController.getPlaneMarkers(), marker.getId()));
 
-		if (mCurrentFocusedPlaneMarkerIndex != INVALID_ARRAY_INDEX) {
+		if (mPlanesController.getSelectedPlaneIndex() != INVALID_ARRAY_INDEX) {
 
-			LineData planeAltitudeData = getPlaneAltitudeData();
-			LineData planeSpeedData = getPlaneSpeedData();
+			LineData planeAltitudeData = mPlanesController.getPlaneAltitudeData();
+			LineData planeSpeedData = mPlanesController.getPlaneSpeedData();
 
 			if (planeAltitudeData != null)
-				setupChart(mAltitudeLineChart, planeAltitudeData, Color.rgb(89, 199, 250));
+				mPlanesController.setupChart(mAltitudeLineChart, planeAltitudeData, Color.rgb(89, 199, 250));
 
 			if (planeSpeedData != null)
-				setupChart(mSpeedLineChart, planeSpeedData, Color.rgb(250, 104, 104));
+				mPlanesController.setupChart(mSpeedLineChart, planeSpeedData, Color.rgb(250, 104, 104));
 
 			Plane selectedPlane = mPlanesController
-					.getPlanes().get(mCurrentFocusedPlaneMarkerIndex);
+					.getPlanes().get(mPlanesController.getSelectedPlaneIndex());
 
 			String reqUrl = String.format(PLANE_DATA_URL,
 					selectedPlane.keyIdentifier);
+
 			// TODO: add error listener
 			JsonObjectRequest request = new JsonObjectRequest(reqUrl, null,
-					onFetchedPlaneInfo, null);
+					new Response.Listener<JSONObject>() {
+						@Override
+						public void onResponse(JSONObject response) {
+							// update this plane
+							mPlanesController.setMorePlaneInfo(response, mPlaneImage, mHandler);
+
+							// hide no plane selected image
+							mNoPlaneSelectedView.setVisibility(View.INVISIBLE);
+
+							updateSlidingPane();
+						}
+					}, null);
 			PlaneApplication.getInstance().getRequestQueue().add(request);
 		}
 
@@ -369,8 +361,8 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 
 		// clear image
 		mPlaneImage.setImageResource(R.drawable.transparent);
-		if (mCurrentFocusedPlaneMarkerIndex != -1)
-			mPlanesController.getPlanes().get(mCurrentFocusedPlaneMarkerIndex).setPlaneImage(null);
+		if (mPlanesController.getSelectedPlaneIndex() != -1)
+			mPlanesController.getPlanes().get(mPlanesController.getSelectedPlaneIndex()).setPlaneImage(null);
 	}
 
 
@@ -556,30 +548,28 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 		mCollapsedView.startAnimation(animation);
 	}
 
-	// TODO: 15-08-14 fix
 	public void setCollapsedPanelData() {
 
-		if (mCurrentFocusedPlaneMarkerIndex == -1) return;
+		if (mPlanesController.getSelectedPlaneIndex() == -1) return;
 
-		Plane plane = mPlanesController.getPlanes().get(mCurrentFocusedPlaneMarkerIndex);
+		Plane plane = mPlanesController.getPlanes().get(mPlanesController.getSelectedPlaneIndex());
 
 		// plane name
-		((TextView) findViewById(R.id.planeName)).setText(!plane.shortName.isEmpty() ? plane.shortName : "No Callsign");
+		((TextView) findViewById(R.id.planeName)).setText(plane.getShortName());
 
 		// plane from -> to airports
-		((TextView) findViewById(R.id.planeFrom)).setText(!plane.getDestination().getFromShort().isEmpty() ? plane.getDestination().getFromShort() : "N/a");
-		((TextView) findViewById(R.id.planeTo)).setText(!plane.getDestination().getToShort().isEmpty() ? plane.getDestination().getToShort() : "N/a");
+		((TextView) findViewById(R.id.planeFrom)).setText(plane.getDestination().getFromShort());
+		((TextView) findViewById(R.id.planeTo)).setText(plane.getDestination().getToShort());
 
 		((TextView) findViewById(R.id.arrivalTime)).setText(plane.getDestination().getArrivalTime());
 
 		mCollapsedView.setVisibility(View.VISIBLE);
 	}
 
-	// TODO: 15-08-14 fix
 	public void setOpenedPanelData() {
-		if (mCurrentFocusedPlaneMarkerIndex == -1) return;
+		if (mPlanesController.getSelectedPlaneIndex() == -1) return;
 
-		Plane plane = mPlanesController.getPlanes().get(mCurrentFocusedPlaneMarkerIndex);
+		Plane plane = mPlanesController.getPlanes().get(mPlanesController.getSelectedPlaneIndex());
 
 		// plane name and airline name
 		((TextView) findViewById(R.id.anchoredPanelPlaneName)).setText(plane.getFullName());
@@ -613,129 +603,6 @@ public class MainActivity extends FragmentActivity implements LocationListener, 
 			default:
 				break;
 		}
-	}
-
-
-	//
-	// MARK: line chart
-	//
-
-	private void setupChart(LineChart chart, LineData data, int color) {
-
-		// no description text
-		chart.setDescription("");
-		chart.setNoDataTextDescription("You need to provide data for the chart.");
-
-		// enable / disable grid background
-		chart.setDrawGridBackground(false);
-
-		// enable touch gestures
-		chart.setTouchEnabled(true);
-
-		// enable scaling and dragging
-		chart.setDragEnabled(true);
-		chart.setScaleEnabled(true);
-
-		// if disabled, scaling can be done on x- and y-axis separately
-		chart.setPinchZoom(false);
-
-		chart.setBackgroundColor(color);
-
-		chart.setViewPortOffsets(50, 20, 50, 0);
-
-		// add data
-		chart.setData(data);
-
-		if (data.getDataSetByIndex(0).getValueCount() >= MIN_GRAPH_POINTS) {
-			chart.setVisibleXRange(MIN_GRAPH_POINTS);
-			chart.moveViewToX(data.getDataSetByIndex(0).getValueCount() - MIN_GRAPH_POINTS);
-		}
-
-		// get the legend (only possible after setting data)
-		Legend l = chart.getLegend();
-		l.setEnabled(false);
-
-		chart.getAxisLeft().setEnabled(false);
-		chart.getAxisRight().setEnabled(false);
-		chart.getXAxis().setEnabled(false);
-
-		chart.getAxisLeft().setStartAtZero(false);
-
-		// animate calls invalidate()...
-		chart.animateX(2500);
-	}
-
-	private LineData getPlaneAltitudeData() {
-
-		if (mCurrentFocusedPlaneMarkerIndex == -1)
-			return null;
-
-		ArrayList<Double> altitudeSet = mPlanesController.getPlanes().get(mCurrentFocusedPlaneMarkerIndex).getAltitudeDataSet();
-
-		ArrayList<String> xVals = new ArrayList<>();
-
-		for (int i = 0; i < altitudeSet.size(); i++)
-			xVals.add(i + "");
-
-		ArrayList<Entry> yVals = new ArrayList<>();
-
-		for (int i = 0; i < altitudeSet.size(); i++) {
-			float val = Float.parseFloat(altitudeSet.get(i).toString()); // FIXME: WTF??
-			yVals.add(new Entry(val, i));
-		}
-
-		LineDataSet set = new LineDataSet(yVals, "Altitude");
-
-		set.setLineWidth(1.75f);
-		set.setCircleSize(3f);
-		set.setColor(Color.WHITE);
-		set.setCircleColor(Color.WHITE);
-		set.setHighLightColor(Color.WHITE);
-		set.setValueTextColor(Color.WHITE);
-		set.setDrawValues(true);
-
-		ArrayList<LineDataSet> dataSets = new ArrayList<>();
-		dataSets.add(set); // add the datasets
-
-		// create a data object with the datasets
-		return new LineData(xVals, dataSets);
-	}
-
-	private LineData getPlaneSpeedData() {
-
-		if (mCurrentFocusedPlaneMarkerIndex == -1)
-			return null;
-
-		ArrayList<Double> speedDataSet = mPlanesController.getPlanes().get(mCurrentFocusedPlaneMarkerIndex).getSpeedDataSet();
-
-		ArrayList<String> xVals = new ArrayList<>();
-
-		for (int i = 0; i < speedDataSet.size(); i++)
-			xVals.add(i + "");
-
-		ArrayList<Entry> yVals = new ArrayList<>();
-
-		for (int i = 0; i < speedDataSet.size(); i++) {
-			float val = Float.parseFloat(speedDataSet.get(i).toString());
-			yVals.add(new Entry(val, i));
-		}
-
-		LineDataSet set = new LineDataSet(yVals, "Speed");
-
-		set.setLineWidth(1.75f);
-		set.setCircleSize(3f);
-		set.setColor(Color.WHITE);
-		set.setCircleColor(Color.WHITE);
-		set.setHighLightColor(Color.WHITE);
-		set.setValueTextColor(Color.WHITE);
-		set.setDrawValues(true);
-
-		ArrayList<LineDataSet> dataSets = new ArrayList<>();
-		dataSets.add(set); // add the datasets
-
-		// create a data object with the datasets
-		return new LineData(xVals, dataSets);
-
 	}
 
 }

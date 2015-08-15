@@ -1,6 +1,7 @@
 package gurinderhans.me.whatplaneisthat.Controllers;
 
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
@@ -9,6 +10,11 @@ import android.widget.ImageView;
 
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
@@ -34,6 +40,7 @@ import gurinderhans.me.whatplaneisthat.PlaneApplication;
 import gurinderhans.me.whatplaneisthat.R;
 import gurinderhans.me.whatplaneisthat.Tools;
 
+import static gurinderhans.me.whatplaneisthat.Constants.MIN_GRAPH_POINTS;
 import static gurinderhans.me.whatplaneisthat.Tools.getJsonDoubleFromArr;
 import static gurinderhans.me.whatplaneisthat.Tools.getJsonLong;
 import static gurinderhans.me.whatplaneisthat.Tools.getJsonString;
@@ -45,11 +52,17 @@ import static gurinderhans.me.whatplaneisthat.Tools.getPlaneIndex;
  */
 public class PlaneController {
 
-	public static final String TAG = PlaneController.class.getSimpleName();
+	protected static final String TAG = PlaneController.class.getSimpleName();
+
 	public final GoogleMap mMap;
-	Polyline mCurrentDrawnPolyline; // current drawn polyline
+
+	private int mSelectedPlaneIndex = -1;
+
+	private Polyline mCurrentDrawnPolyline; // current drawn polyline
+
 	private List<Plane> mPlanes = new ArrayList<>();
 	private List<Marker> mPlaneMarkers = new ArrayList<>();
+
 
 	public PlaneController(GoogleMap map) {
 		this.mMap = map;
@@ -149,25 +162,7 @@ public class PlaneController {
 		return plane;
 	}
 
-	public List<Plane> getPlanes() {
-		return mPlanes;
-	}
-
-	public List<Marker> getPlaneMarkers() {
-		return mPlaneMarkers;
-	}
-
-	public Polyline getPlanePathPolyline() {
-		return mCurrentDrawnPolyline;
-	}
-
-	/**
-	 * Sets additional info on plane, when the user taps on the plane marker to inquire more
-	 *
-	 * @param planeIndex - index of the plane in `mPlanes`
-	 * @param data       - the additional data related to this plane
-	 */
-	public void setMorePlaneInfo(final int planeIndex, JSONObject data, final ImageView planeImageView, final Handler mainHandler) {
+	public void setMorePlaneInfo(JSONObject data, final ImageView planeImageView, final Handler mainHandler) {
 
 		// few resets
 		if (mCurrentDrawnPolyline != null)
@@ -179,7 +174,7 @@ public class PlaneController {
 
 
 		// update old content
-		final Plane plane = mPlanes.get(planeIndex);
+		final Plane plane = mPlanes.get(mSelectedPlaneIndex);
 
 		plane.setFullName(getJsonString(data, Constants.KEY_AIRCRAFT_NAME));
 		plane.setAirlineName(getJsonString(data, Constants.KEY_AIRLINE_NAME));
@@ -223,10 +218,10 @@ public class PlaneController {
 		}
 
 		// update list with 'new' plane
-		mPlanes.set(planeIndex, plane);
+		mPlanes.set(mSelectedPlaneIndex, plane);
 
 		// mark this plane marker as selected
-		mPlaneMarkers.get(planeIndex).setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
+		mPlaneMarkers.get(mSelectedPlaneIndex).setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
 
 		// fetch the plane image
 
@@ -249,7 +244,7 @@ public class PlaneController {
 					final Drawable image = new BitmapDrawable(null, bmp);
 
 					// TODO: fade in animation
-					mPlanes.get(planeIndex).setPlaneImage(Pair.create(image, Tools.getBitmapColor(bmp)));
+					mPlanes.get(mSelectedPlaneIndex).setPlaneImage(Pair.create(image, Tools.getBitmapColor(bmp)));
 
 					mainHandler.post(new Runnable() {
 						@Override
@@ -280,5 +275,143 @@ public class PlaneController {
 			// unable to parse polyline json data, oh well!
 		}
 
+	}
+
+	public void setupChart(LineChart chart, LineData data, int color) {
+
+		// no description text
+		chart.setDescription("");
+		chart.setNoDataTextDescription("You need to provide data for the chart.");
+
+		// enable / disable grid background
+		chart.setDrawGridBackground(false);
+
+		// enable touch gestures
+		chart.setTouchEnabled(true);
+
+		// enable scaling and dragging
+		chart.setDragEnabled(true);
+		chart.setScaleEnabled(true);
+
+		// if disabled, scaling can be done on x- and y-axis separately
+		chart.setPinchZoom(false);
+
+		chart.setBackgroundColor(color);
+
+		chart.setViewPortOffsets(50, 20, 50, 0);
+
+		// add data
+		chart.setData(data);
+
+		if (data.getDataSetByIndex(0).getValueCount() >= MIN_GRAPH_POINTS) {
+			chart.setVisibleXRange(MIN_GRAPH_POINTS);
+			chart.moveViewToX(data.getDataSetByIndex(0).getValueCount() - MIN_GRAPH_POINTS);
+		}
+
+		// get the legend (only possible after setting data)
+		Legend l = chart.getLegend();
+		l.setEnabled(false);
+
+		chart.getAxisLeft().setEnabled(false);
+		chart.getAxisRight().setEnabled(false);
+		chart.getXAxis().setEnabled(false);
+
+		chart.getAxisLeft().setStartAtZero(false);
+
+		// animate calls invalidate()...
+		chart.animateX(2500);
+	}
+
+	public LineData getPlaneAltitudeData() {
+
+		if (mSelectedPlaneIndex == -1)
+			return null;
+
+		ArrayList<Double> altitudeSet = getPlanes().get(mSelectedPlaneIndex).getAltitudeDataSet();
+
+		ArrayList<String> xVals = new ArrayList<>();
+
+		for (int i = 0; i < altitudeSet.size(); i++)
+			xVals.add(i + "");
+
+		ArrayList<Entry> yVals = new ArrayList<>();
+
+		for (int i = 0; i < altitudeSet.size(); i++) {
+			float val = Float.parseFloat(altitudeSet.get(i).toString()); // FIXME: WTF??
+			yVals.add(new Entry(val, i));
+		}
+
+		LineDataSet set = new LineDataSet(yVals, "Altitude");
+
+		set.setLineWidth(1.75f);
+		set.setCircleSize(3f);
+		set.setColor(Color.WHITE);
+		set.setCircleColor(Color.WHITE);
+		set.setHighLightColor(Color.WHITE);
+		set.setValueTextColor(Color.WHITE);
+		set.setDrawValues(true);
+
+		ArrayList<LineDataSet> dataSets = new ArrayList<>();
+		dataSets.add(set); // add the datasets
+
+		// create a data object with the datasets
+		return new LineData(xVals, dataSets);
+	}
+
+	public LineData getPlaneSpeedData() {
+
+		if (mSelectedPlaneIndex == -1)
+			return null;
+
+		ArrayList<Double> speedDataSet = getPlanes().get(mSelectedPlaneIndex).getSpeedDataSet();
+
+		ArrayList<String> xVals = new ArrayList<>();
+
+		for (int i = 0; i < speedDataSet.size(); i++)
+			xVals.add(i + "");
+
+		ArrayList<Entry> yVals = new ArrayList<>();
+
+		for (int i = 0; i < speedDataSet.size(); i++) {
+			float val = Float.parseFloat(speedDataSet.get(i).toString());
+			yVals.add(new Entry(val, i));
+		}
+
+		LineDataSet set = new LineDataSet(yVals, "Speed");
+
+		set.setLineWidth(1.75f);
+		set.setCircleSize(3f);
+		set.setColor(Color.WHITE);
+		set.setCircleColor(Color.WHITE);
+		set.setHighLightColor(Color.WHITE);
+		set.setValueTextColor(Color.WHITE);
+		set.setDrawValues(true);
+
+		ArrayList<LineDataSet> dataSets = new ArrayList<>();
+		dataSets.add(set); // add the datasets
+
+		// create a data object with the datasets
+		return new LineData(xVals, dataSets);
+
+	}
+
+	public List<Plane> getPlanes() {
+		return mPlanes;
+	}
+
+	public List<Marker> getPlaneMarkers() {
+		return mPlaneMarkers;
+	}
+
+	public Polyline getPlanePathPolyline() {
+		return mCurrentDrawnPolyline;
+	}
+
+	public int getSelectedPlaneIndex() {
+		return mSelectedPlaneIndex;
+	}
+
+	public void setSelectedPlaneIndex(int mCurrentFocusedPlaneMarkerIndex) {
+		this.mSelectedPlaneIndex = mCurrentFocusedPlaneMarkerIndex;
 	}
 }

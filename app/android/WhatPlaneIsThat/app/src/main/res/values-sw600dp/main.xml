@@ -2,7 +2,7 @@
     <bool name="isTablet">true</bool>
     <dimen name="plane_image_height">444dp</dimen>
 
-    <item name="sliding_panel_anchor_point" format="float" type="integer">0.67</item>
+    <item name="sliding_panel_anchor_point" format="float" type="integer">0.645</item>
 
     <dimen name="opened_panel_red_bar_padding_bottom">15dp</dimen>
     <dimen name="opened_panel_redbar_title_size">24sp</dimen>

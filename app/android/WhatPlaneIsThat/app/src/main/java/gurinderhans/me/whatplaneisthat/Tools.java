@@ -118,7 +118,7 @@ public class Tools {
 			if (allPlanes.get(i).keyIdentifier.equals(key))
 				return i;
 
-		return -1;
+		return Constants.INVALID_ARRAY_INDEX;
 	}
 
 	/**

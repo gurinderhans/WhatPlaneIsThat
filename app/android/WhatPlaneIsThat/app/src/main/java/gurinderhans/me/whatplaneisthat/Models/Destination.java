@@ -68,7 +68,7 @@ public class Destination {
 	}
 
 	public void setToAirport(String toFullAirport) {
-		this.toAirport = toFullAirport;
+		this.toAirport = toFullAirport.trim();
 	}
 
 	public String getFromAirport() {
@@ -76,10 +76,10 @@ public class Destination {
 	}
 
 	public void setFromAirport(String fromAirport) {
-		this.fromAirport = fromAirport;
+		this.fromAirport = fromAirport.trim();
 	}
 
-	public LatLng getDestTo() {
+	public LatLng getDestToCoords() {
 		return destTo;
 	}
 
@@ -87,7 +87,7 @@ public class Destination {
 		this.destTo = destTo;
 	}
 
-	public LatLng getDestFrom() {
+	public LatLng getDestFromCoords() {
 		return destFrom;
 	}
 

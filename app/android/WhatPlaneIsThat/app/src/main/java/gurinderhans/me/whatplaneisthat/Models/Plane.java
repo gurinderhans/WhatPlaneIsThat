@@ -17,10 +17,8 @@ public class Plane {
 	// plane's unique identifier (used for fetching plane data from web and searching for plane in mem.)
 	public final String keyIdentifier;
 
-	public String shortName;
-
+	private String shortName;
 	private String fullName;
-
 	private String airlineName;
 
 	private LatLng planePos;
