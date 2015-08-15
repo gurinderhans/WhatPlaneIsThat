@@ -1,7 +1,22 @@
 package gurinderhans.me.whatplaneisthat.Controllers;
 
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.Handler;
+import android.util.Pair;
+import android.widget.ImageView;
+
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.ImageLoader;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -12,8 +27,12 @@ import java.util.Iterator;
 import java.util.List;
 
 import gurinderhans.me.whatplaneisthat.Constants;
+import gurinderhans.me.whatplaneisthat.MainActivity;
 import gurinderhans.me.whatplaneisthat.Models.Destination;
 import gurinderhans.me.whatplaneisthat.Models.Plane;
+import gurinderhans.me.whatplaneisthat.PlaneApplication;
+import gurinderhans.me.whatplaneisthat.R;
+import gurinderhans.me.whatplaneisthat.Tools;
 
 import static gurinderhans.me.whatplaneisthat.Tools.getJsonDoubleFromArr;
 import static gurinderhans.me.whatplaneisthat.Tools.getJsonLong;
@@ -27,16 +46,16 @@ import static gurinderhans.me.whatplaneisthat.Tools.getPlaneIndex;
 public class PlaneController {
 
 	public static final String TAG = PlaneController.class.getSimpleName();
-
-	private List<Plane> allPlanes = new ArrayList<>();
-
 	public final GoogleMap mMap;
+	Polyline mCurrentDrawnPolyline; // current drawn polyline
+	private List<Plane> mPlanes = new ArrayList<>();
+	private List<Marker> mPlaneMarkers = new ArrayList<>();
 
 	public PlaneController(GoogleMap map) {
 		this.mMap = map;
 	}
 
-	public List<Plane> updatePlanes(JSONObject data) {
+	public void updatePlanes(JSONObject data) {
 
 		Iterator<String> iterator = data.keys();
 
@@ -45,26 +64,48 @@ public class PlaneController {
 
 			try {
 
-				int planeIndex = getPlaneIndex(allPlanes, planeKey);
+				int planeIndex = getPlaneIndex(mPlanes, planeKey);
 
-				if (planeIndex == -1) {
+				if (planeIndex == Constants.INVALID_ARRAY_INDEX) {
 					Plane newPlane = _createPlane(planeKey, data.getJSONArray(planeKey));
-					allPlanes.add(newPlane);
+					mPlanes.add(newPlane);
+
+					Marker planeMarker = mMap.addMarker(new MarkerOptions()
+							.position(newPlane.getPosition())
+							.icon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon))
+							.rotation((float) newPlane.getRotation())
+							.flat(true));
+					mPlaneMarkers.add(planeMarker);
 					continue;
 				}
 
-				// else update
-				allPlanes.set(planeIndex,
-						_updatePlane(allPlanes.get(planeIndex), data.getJSONArray(planeKey)));
+				// ELSE: update or remove
+				LatLngBounds mapSearchBounds = new LatLngBounds(
+						Tools.boundingBox(MainActivity.mUserLocation, 225, Constants.SEARCH_RADIUS),
+						Tools.boundingBox(MainActivity.mUserLocation, 45, Constants.SEARCH_RADIUS));
 
+				Plane updatedPlane = _updatePlane(mPlanes.get(planeIndex),
+						data.getJSONArray(planeKey));
+
+				if (mapSearchBounds.contains(updatedPlane.getPosition())) {
+					mPlanes.set(planeIndex, updatedPlane);
+
+					// update maker and replace the old one in list
+					Marker oldMarker = mPlaneMarkers.get(planeIndex);
+					oldMarker.setPosition(updatedPlane.getPosition());
+					oldMarker.setRotation((float) updatedPlane.getRotation());
+					mPlaneMarkers.set(planeIndex, oldMarker);
+				} else {
+					// remove marker from map
+					mPlaneMarkers.get(planeIndex).remove();
+				}
 
 			} catch (JSONException e) {
-				e.printStackTrace();
+				/* This occurs when we try to convert a JSON node to a JSONArray,
+				which we use to check if the node contains plane data
+				*/
 			}
 		}
-
-		// return the updated list
-		return allPlanes;
 	}
 
 	private Plane _createPlane(String key, JSONArray data) {
@@ -108,18 +149,37 @@ public class PlaneController {
 		return plane;
 	}
 
-	public List<Plane> getAllPlanes() {
-		return allPlanes;
+	public List<Plane> getPlanes() {
+		return mPlanes;
+	}
+
+	public List<Marker> getPlaneMarkers() {
+		return mPlaneMarkers;
+	}
+
+	public Polyline getPlanePathPolyline() {
+		return mCurrentDrawnPolyline;
 	}
 
 	/**
 	 * Sets additional info on plane, when the user taps on the plane marker to inquire more
 	 *
-	 * @param planeIndex - index of the plane in `allPlanes`
+	 * @param planeIndex - index of the plane in `mPlanes`
 	 * @param data       - the additional data related to this plane
 	 */
-	public void setMorePlaneInfo(int planeIndex, JSONObject data) {
-		Plane plane = allPlanes.get(planeIndex);
+	public void setMorePlaneInfo(final int planeIndex, JSONObject data, final ImageView planeImageView, final Handler mainHandler) {
+
+		// few resets
+		if (mCurrentDrawnPolyline != null)
+			mCurrentDrawnPolyline.remove();
+
+		for (Marker marker : mPlaneMarkers)
+			marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.plane_icon));
+		planeImageView.setImageResource(R.drawable.transparent);
+
+
+		// update old content
+		final Plane plane = mPlanes.get(planeIndex);
 
 		plane.setFullName(getJsonString(data, Constants.KEY_AIRCRAFT_NAME));
 		plane.setAirlineName(getJsonString(data, Constants.KEY_AIRLINE_NAME));
@@ -130,8 +190,15 @@ public class PlaneController {
 			planeDestination.setFromShort(getJsonString(data, Constants.KEY_PLANE_FROM_SHORT));
 			planeDestination.setToShort(getJsonString(data, Constants.KEY_PLANE_TO_SHORT));
 
-			planeDestination.setToFullCity(getJsonString(data, Constants.KEY_PLANE_TO_CITY));
-			planeDestination.setFromFullCity(getJsonString(data, Constants.KEY_PLANE_FROM_CITY));
+
+			String placeTo = getJsonString(data, Constants.KEY_PLANE_TO_CITY);
+			String placeFrom = getJsonString(data, Constants.KEY_PLANE_FROM_CITY);
+
+			planeDestination.setToFullCity(placeTo != null ? placeTo.split(",")[0] : Constants.UNKNOWN_VALUE);
+			planeDestination.setFromFullCity(placeFrom != null ? placeFrom.split(",")[0] : Constants.UNKNOWN_VALUE);
+
+			planeDestination.setToAirport(placeTo != null ? placeTo.split(",")[1] : Constants.UNKNOWN_VALUE);
+			planeDestination.setFromAirport(placeFrom != null ? placeFrom.split(",")[1] : Constants.UNKNOWN_VALUE);
 
 			planeDestination.setDepartureTime(getJsonLong(data, Constants.KEY_PLANE_DEPARTURE_TIME));
 			planeDestination.setArrivalTime(getJsonLong(data, Constants.KEY_PLANE_ARRIVAL_TIME));
@@ -156,6 +223,62 @@ public class PlaneController {
 		}
 
 		// update list with 'new' plane
-		allPlanes.set(planeIndex, plane);
+		mPlanes.set(planeIndex, plane);
+
+		// mark this plane marker as selected
+		mPlaneMarkers.get(planeIndex).setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_plane_icon_selected));
+
+		// fetch the plane image
+
+		String largeImageUrl = getJsonString(data, Constants.KEY_PLANE_IMAGE_LARGE_URL);
+		String smallImageUrl = getJsonString(data, Constants.KEY_PLANE_IMAGE_URL);
+
+		// fallback to small image if there is no big image
+		String imgUrl = largeImageUrl != null && !largeImageUrl.isEmpty()
+				? largeImageUrl
+				: smallImageUrl != null && !smallImageUrl.isEmpty()
+				? smallImageUrl : "";
+
+		ImageLoader imgLoader = PlaneApplication.getInstance().getImageLoader();
+		imgLoader.get(imgUrl, new ImageLoader.ImageListener() {
+			@Override
+			public void onResponse(ImageLoader.ImageContainer response, boolean isImmediate) {
+				final Bitmap bmp = response.getBitmap();
+				if (bmp != null) {
+
+					final Drawable image = new BitmapDrawable(null, bmp);
+
+					// TODO: fade in animation
+					mPlanes.get(planeIndex).setPlaneImage(Pair.create(image, Tools.getBitmapColor(bmp)));
+
+					mainHandler.post(new Runnable() {
+						@Override
+						public void run() {
+							planeImageView.setImageDrawable(image);
+						}
+					});
+				}
+			}
+
+			@Override
+			public void onErrorResponse(VolleyError error) {
+				planeImageView.setImageResource(R.drawable.transparent);
+			}
+		});
+
+		// draw polyline
+		try {
+			PolylineOptions line = new PolylineOptions().width(15).color(0xFF00AEEF);
+			JSONArray trailArr = data.getJSONArray(Constants.KEY_PLANE_MAP_TRAIL);
+
+			for (int i = 0; i < trailArr.length(); i += 5)
+				line.add(new LatLng(trailArr.getDouble(i), trailArr.getDouble(i + 1)));
+
+			mCurrentDrawnPolyline = mMap.addPolyline(line);
+
+		} catch (JSONException e) {
+			// unable to parse polyline json data, oh well!
+		}
+
 	}
 }

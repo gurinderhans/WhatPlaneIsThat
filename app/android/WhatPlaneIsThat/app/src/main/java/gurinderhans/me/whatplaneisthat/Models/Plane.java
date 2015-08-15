@@ -1,7 +1,6 @@
 package gurinderhans.me.whatplaneisthat.Models;
 
 import android.graphics.drawable.Drawable;
-import android.support.annotation.NonNull;
 import android.util.Pair;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -44,24 +43,24 @@ public class Plane {
 	// setters & getters
 	//
 
-	public LatLng getPlanePos() {
+	public LatLng getPosition() {
 		return planePos;
+	}
+
+	public void setPosition(LatLng planePos) {
+		this.planePos = planePos;
 	}
 
 	public void setPlanePos(LatLng planePos) {
 		this.planePos = planePos;
 	}
 
+	public String getShortName() {
+		return shortName != null && !shortName.isEmpty() ? shortName : "No Callsign";
+	}
+
 	public void setShortName(String shortName) {
 		this.shortName = shortName;
-	}
-
-	public String getShortName() {
-		return shortName;
-	}
-
-	public void setPosition(LatLng planePos) {
-		this.planePos = planePos;
 	}
 
 	public double getRotation() {
@@ -81,7 +80,7 @@ public class Plane {
 	}
 
 	public String getFullName() {
-		return fullName != null && !fullName.isEmpty() ? fullName : (!shortName.isEmpty() ? shortName : "No CallSign");
+		return fullName != null && !fullName.isEmpty() ? fullName : getShortName();
 	}
 
 	public void setFullName(String fullName) {

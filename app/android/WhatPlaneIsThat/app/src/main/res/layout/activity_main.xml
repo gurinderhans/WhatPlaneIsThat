@@ -1,16 +1,16 @@
-<com.sothree.slidinguppanel.SlidingUpPanelLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:sothree="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/sliding_layout"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@android:color/white"
-    android:gravity="bottom"
-    sothree:umanoAnchorPoint="@integer/sliding_panel_anchor_point"
-    sothree:umanoFadeColor="@android:color/transparent"
-    sothree:umanoPanelHeight="68dp"
-    sothree:umanoShadowHeight="4dp"
-    tools:context=".MainActivity">
+<com.sothree.slidinguppanel.SlidingUpPanelLayout android:id="@+id/sliding_layout"
+                                                 xmlns:android="http://schemas.android.com/apk/res/android"
+                                                 xmlns:sothree="http://schemas.android.com/apk/res-auto"
+                                                 xmlns:tools="http://schemas.android.com/tools"
+                                                 android:layout_width="match_parent"
+                                                 android:layout_height="match_parent"
+                                                 android:background="@android:color/white"
+                                                 android:gravity="bottom"
+                                                 sothree:umanoAnchorPoint="@integer/sliding_panel_anchor_point"
+                                                 sothree:umanoFadeColor="@android:color/transparent"
+                                                 sothree:umanoPanelHeight="68dp"
+                                                 sothree:umanoShadowHeight="4dp"
+                                                 tools:context=".MainActivity">
 
     <RelativeLayout
         android:id="@+id/panelMainContent"
@@ -21,7 +21,7 @@
             android:id="@+id/map"
             android:name="com.google.android.gms.maps.SupportMapFragment"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"/>
 
         <ImageButton
             android:id="@+id/lockToLocation"
@@ -35,7 +35,7 @@
             android:layout_marginRight="20dp"
             android:background="@drawable/circle"
             android:contentDescription="Current Location"
-            android:src="@drawable/ic_gps_fixed_black_24dp" />
+            android:src="@drawable/ic_gps_fixed_black_24dp"/>
 
         <ImageView
             android:id="@+id/planeImage"
@@ -43,7 +43,7 @@
             android:layout_height="@dimen/plane_image_height"
             android:layout_alignParentBottom="true"
             android:scaleType="centerCrop"
-            android:src="@drawable/transparent" />
+            android:src="@drawable/transparent"/>
 
     </RelativeLayout>
 
@@ -58,19 +58,19 @@
             android:id="@+id/panelCollapsedView"
             layout="@layout/collapsed_panel_layout"
             android:layout_width="match_parent"
-            android:layout_height="68dp" />
+            android:layout_height="68dp"/>
 
         <include
             android:id="@+id/panelAnchoredView"
             layout="@layout/opened_panel_layout"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"/>
 
         <include
             android:id="@+id/noPlaneSelectedView"
             layout="@layout/no_plane_selected_overlay"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"/>
 
     </RelativeLayout>
 

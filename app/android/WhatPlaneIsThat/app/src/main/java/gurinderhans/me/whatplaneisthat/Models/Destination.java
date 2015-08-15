@@ -6,6 +6,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import static gurinderhans.me.whatplaneisthat.Constants.UNKNOWN_VALUE;
+
 /**
  * Created by ghans on 6/24/15.
  */
@@ -30,7 +32,7 @@ public class Destination {
 	}
 
 	public String getToShort() {
-		return toShort;
+		return toShort != null && !toShort.isEmpty() ? toShort : UNKNOWN_VALUE;
 	}
 
 	public void setToShort(String toShort) {
@@ -38,7 +40,7 @@ public class Destination {
 	}
 
 	public String getFromShort() {
-		return fromShort;
+		return fromShort != null && !fromShort.isEmpty() ? fromShort : UNKNOWN_VALUE;
 	}
 
 	public void setFromShort(String fromShort) {
@@ -46,7 +48,7 @@ public class Destination {
 	}
 
 	public String getToFullCity() {
-		return toFullCity;
+		return toFullCity != null && !toFullCity.isEmpty() ? toFullCity : UNKNOWN_VALUE;
 	}
 
 	public void setToFullCity(String toFullCity) {
@@ -54,7 +56,7 @@ public class Destination {
 	}
 
 	public String getFromFullCity() {
-		return fromFullCity;
+		return fromFullCity != null && !fromFullCity.isEmpty() ? fromFullCity : UNKNOWN_VALUE;
 	}
 
 	public void setFromFullCity(String fromFullCity) {
@@ -62,7 +64,7 @@ public class Destination {
 	}
 
 	public String getToAirport() {
-		return toAirport;
+		return toAirport != null && !toAirport.isEmpty() ? toAirport : UNKNOWN_VALUE;
 	}
 
 	public void setToAirport(String toFullAirport) {
@@ -70,7 +72,7 @@ public class Destination {
 	}
 
 	public String getFromAirport() {
-		return fromAirport;
+		return fromAirport != null && !fromAirport.isEmpty() ? fromAirport : UNKNOWN_VALUE;
 	}
 
 	public void setFromAirport(String fromAirport) {
@@ -92,7 +94,6 @@ public class Destination {
 	public void setDestFrom(LatLng destFrom) {
 		this.destFrom = destFrom;
 	}
-
 
 
 	public String getArrivalTime() {
