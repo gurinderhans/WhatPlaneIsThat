@@ -1,5 +1,5 @@
 # WhatPlaneIsThat
-Hear or see a plane flying above in the sky somewhere above you but can't see it. Use this app to find out the details and whereabouts of the plane.
+Hear or see a plane flying above in the sky somewhere above you but can't see it? Use this app to find out the details and whereabouts of the plane.
 
 # Download
 [APK File](https://github.com/gurinderhans/WhatPlaneIsThat/raw/master/app/android/WhatPlaneIsThat/app/app-release.apk)
